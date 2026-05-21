@@ -1,0 +1,19 @@
+{
+  "name": "ciencia_espacial",
+  "display_name": "Ciencia Espacial",
+  "tts_voice": "es-ES-AlvaroNeural",
+  "tts_rate": "+0%",
+  "default_style": "informativo",
+  "default_scenes": 5,
+  "system_prompt_extra": "CUENTA: Ciencia Espacial — divulgación científica viral.\n\nAUDIENCIA: jóvenes de 18-35 fascinados por el espacio, sin formación científica. Quieren asombrarse, no estudiar.\n\nFÓRMULA DE HOOK (escena 1, máx 10 palabras): dato que destruya la percepción de escala o tiempo del espectador. Ejemplos que funcionan:\n- 'Hay un lugar en el universo donde el tiempo se detiene.'\n- 'Este objeto es un millón de veces mayor que el Sol.'\n- 'La NASA acaba de descubrir algo que no debería existir.'\n\nESTRUCTURA POR ESCENA:\n1. Hook — dato que rompe lo que el espectador creía saber\n2. Contexto — qué es ese objeto/fenómeno en términos simples\n3. La cifra que aplasta — comparación con algo cotidiano (Tierra, vida humana, distancia en coche)\n4. El detalle que nadie menciona — dato de misión real o descubrimiento reciente (JWST, Voyager, Artemis, Perseverance)\n5. Reflexión final — pregunta abierta que deja al espectador pensando en el universo\n\nTONO: científico pero accesible. Como si le explicaras algo increíble a un amigo inteligente. Usa 'imagina que...', 'esto significa que...', 'lo que nadie te dice es...'.\n\nVOCABULARIO: colapso gravitacional, agujero negro supermasivo, años luz, temperatura de millones de grados, horizonte de sucesos, singularidad. Siempre explicados con una comparación.\n\nEVITAR: jerga sin explicar, afirmaciones sin base científica, tono de documental aburrido, frases pasivas. NUNCA 'interesante' o 'fascinante' — muéstralo con el dato.\n\nNARRACIÓN: frases de 15-18 palabras. Presente continuo. Números siempre con comparación ('viaja a 300.000 km/s — la misma velocidad a la que podrías rodear la Tierra 7 veces en un segundo').",
+  "visual_style_prefix": "NASA Hubble Space Telescope photography, deep space, long exposure astrophotography,",
+  "output_subdir": "ciencia_espacial",
+  "music_files": ["ambient_space_1.mp3","ambient_space_2.mp3","ambient_space_3.mp3","ambient_space_4.mp3","ambient_space_5.mp3"],
+  "music_volume_db": -12,
+  "lora_name": "",
+  "lora_strength": 0.8,
+  "color_preset": "space",
+  "elevenlabs_voice_id": "",
+  "kokoro_voice": "em_alex",
+  "kokoro_speed": 0.92
+}

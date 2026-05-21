@@ -1,0 +1,147 @@
+{
+  "_comment": "Todos los modelos necesarios para el pipeline. Usar install.ps1 para descargar automáticamente.",
+  "_last_updated": "2026-05-21",
+  "models": [
+    {
+      "name": "flux1-dev-Q8_0.gguf",
+      "description": "Flux.1 Dev cuantizado Q8_0 — generación de imágenes principal",
+      "hf_repo": "city96/FLUX.1-dev-gguf",
+      "hf_filename": "flux1-dev-Q8_0.gguf",
+      "dest": "models/unet/",
+      "requires_hf_token": true,
+      "size_gb": 11.9
+    },
+    {
+      "name": "Wan2.2-I2V-A14B-HighNoise-Q6_K.gguf",
+      "description": "Wan 2.2 Image-to-Video 14B HighNoise GGUF Q6_K",
+      "hf_repo": "Kijai/Wan2.2_comfyui-gguf",
+      "hf_filename": "Wan2.2-I2V-A14B-HighNoise-Q6_K.gguf",
+      "dest": "models/unet/",
+      "requires_hf_token": false,
+      "size_gb": 10.6
+    },
+    {
+      "name": "Wan2.2-I2V-A14B-LowNoise-Q6_K.gguf",
+      "description": "Wan 2.2 Image-to-Video 14B LowNoise GGUF Q6_K",
+      "hf_repo": "Kijai/Wan2.2_comfyui-gguf",
+      "hf_filename": "Wan2.2-I2V-A14B-LowNoise-Q6_K.gguf",
+      "dest": "models/unet/",
+      "requires_hf_token": false,
+      "size_gb": 10.6
+    },
+    {
+      "name": "Wan2.2-Lightning_I2V-A14B-4steps-lora_HIGH_fp16.safetensors",
+      "description": "Wan 2.2 Lightning LoRA 4 steps HIGH — acelera generación de vídeo",
+      "hf_repo": "Wan-AI/Wan2.2-I2V-A14B-HighNoise-fp16",
+      "hf_filename": "Wan2.2-Lightning_I2V-A14B-4steps-lora_HIGH_fp16.safetensors",
+      "dest": "models/loras/",
+      "requires_hf_token": false,
+      "size_gb": 0.8
+    },
+    {
+      "name": "Wan2.2-Lightning_I2V-A14B-4steps-lora_LOW_fp16.safetensors",
+      "description": "Wan 2.2 Lightning LoRA 4 steps LOW",
+      "hf_repo": "Wan-AI/Wan2.2-I2V-A14B-LowNoise-fp16",
+      "hf_filename": "Wan2.2-Lightning_I2V-A14B-4steps-lora_LOW_fp16.safetensors",
+      "dest": "models/loras/",
+      "requires_hf_token": false,
+      "size_gb": 0.8
+    },
+    {
+      "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "description": "Text encoder UMT5-XXL fp8 para Wan 2.2",
+      "hf_repo": "Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+      "hf_filename": "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "dest": "models/text_encoders/",
+      "requires_hf_token": false,
+      "size_gb": 9.8
+    },
+    {
+      "name": "umt5-xxl-encoder-Q5_K_M.gguf",
+      "description": "Text encoder UMT5-XXL GGUF Q5_K_M para Wan 2.2 (alternativa ligera)",
+      "hf_repo": "city96/umt5-xxl-encoder-gguf",
+      "hf_filename": "umt5-xxl-encoder-Q5_K_M.gguf",
+      "dest": "models/text_encoders/",
+      "requires_hf_token": false,
+      "size_gb": 5.2
+    },
+    {
+      "name": "clip_vision_h.safetensors",
+      "description": "CLIP Vision H — requerido por Wan 2.2 I2V",
+      "hf_repo": "Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+      "hf_filename": "split_files/clip_vision/clip_vision_h.safetensors",
+      "dest": "models/clip_vision/",
+      "requires_hf_token": false,
+      "size_gb": 0.6
+    },
+    {
+      "name": "wan_2.1_vae.safetensors",
+      "description": "VAE para Wan 2.1/2.2",
+      "hf_repo": "Comfy-Org/Wan_2.1_ComfyUI_repackaged",
+      "hf_filename": "split_files/vae/wan_2.1_vae.safetensors",
+      "dest": "models/vae/",
+      "requires_hf_token": false,
+      "size_gb": 0.4
+    },
+    {
+      "name": "ae.safetensors",
+      "description": "VAE para Flux.1",
+      "hf_repo": "black-forest-labs/FLUX.1-dev",
+      "hf_filename": "ae.safetensors",
+      "dest": "models/vae/",
+      "requires_hf_token": true,
+      "size_gb": 0.3
+    },
+    {
+      "name": "clip_l.safetensors",
+      "description": "CLIP-L text encoder para Flux",
+      "hf_repo": "comfyanonymous/flux_text_encoders",
+      "hf_filename": "clip_l.safetensors",
+      "dest": "models/clip/",
+      "requires_hf_token": false,
+      "size_gb": 0.24
+    },
+    {
+      "name": "t5xxl_fp8_e4m3fn.safetensors",
+      "description": "T5-XXL fp8 text encoder para Flux",
+      "hf_repo": "comfyanonymous/flux_text_encoders",
+      "hf_filename": "t5xxl_fp8_e4m3fn.safetensors",
+      "dest": "models/clip/",
+      "requires_hf_token": false,
+      "size_gb": 4.6
+    }
+  ],
+  "custom_nodes": [
+    {
+      "name": "ComfyUI-GGUF",
+      "repo": "https://github.com/city96/ComfyUI-GGUF",
+      "pip_extras": ["sentencepiece", "protobuf"]
+    },
+    {
+      "name": "ComfyUI-TeaCache",
+      "repo": "https://github.com/welltop-cn/ComfyUI-TeaCache"
+    },
+    {
+      "name": "ComfyUI-VideoHelperSuite",
+      "repo": "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite"
+    },
+    {
+      "name": "ComfyUI-Frame-Interpolation",
+      "repo": "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation",
+      "model_notes": "Descargar rife49.pth manualmente desde la UI de ComfyUI tras instalar"
+    },
+    {
+      "name": "RTXVideoSuperResolution",
+      "repo": "https://github.com/Limitless-Flow/RTXVideoSuperResolution",
+      "notes": "Requiere GPU NVIDIA RTX (Blackwell sm_12.0 en este setup)"
+    }
+  ],
+  "comfyui": {
+    "repo": "https://github.com/comfyanonymous/ComfyUI",
+    "python_version": "3.12.10",
+    "torch": "torch==2.12.0+cu130",
+    "torch_index": "https://download.pytorch.org/whl/cu130",
+    "launch_flags": "--fp8_e4m3fn-unet --preview-method auto",
+    "notes": "NO usar --highvram con Wan 14B GGUF en RTX 5080 (15.9GB) — causa OOM"
+  }
+}

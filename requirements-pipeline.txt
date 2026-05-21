@@ -1,0 +1,15 @@
+# Pipeline dependencies (extras sobre ComfyUI base)
+# Instalar en el venv unificado: Z:\AI\ComfyUI\.venv\Scripts\pip.exe install -r requirements-pipeline.txt
+
+anthropic==0.103.0
+edge-tts==7.2.8
+kokoro==0.9.4
+misaki==0.9.4
+espeakng-loader==0.2.4
+huggingface_hub==1.15.0
+
+# Ya incluidas en ComfyUI pero listadas para referencia
+aiohttp==3.13.5
+numpy==2.3.5
+pillow==12.2.0
+requests==2.34.2

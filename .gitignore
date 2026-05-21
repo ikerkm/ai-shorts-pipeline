@@ -1,0 +1,39 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Outputs generados (no van al repo)
+output/
+temp/
+test_output/
+logs/
+*.log
+
+# Música generada (se regenera con music_generator.py)
+music/*.mp3
+
+# Archivos grandes de modelos
+*.gguf
+*.safetensors
+*.pth
+*.pt
+*.bin
+
+# DB ComfyUI
+*.db
+*.db-lock
+*.db.lock
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Windows
+Thumbs.db
+desktop.ini

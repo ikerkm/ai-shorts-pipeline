@@ -1,0 +1,113 @@
+{
+  "last_node_id": 9,
+  "last_link_id": 9,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "pos": [50, 200],
+      "size": [315, 82],
+      "outputs": [{"name": "MODEL", "type": "MODEL", "links": [1]}],
+      "properties": {},
+      "widgets_values": ["flux1-dev-fp8-e4m3fn.safetensors", "fp8_e4m3fn"]
+    },
+    {
+      "id": 2,
+      "type": "DualCLIPLoader",
+      "pos": [50, 350],
+      "size": [315, 106],
+      "outputs": [{"name": "CLIP", "type": "CLIP", "links": [2, 3]}],
+      "properties": {},
+      "widgets_values": ["clip_l.safetensors", "t5xxl_fp8_e4m3fn.safetensors", "flux"]
+    },
+    {
+      "id": 3,
+      "type": "VAELoader",
+      "pos": [50, 500],
+      "size": [315, 58],
+      "outputs": [{"name": "VAE", "type": "VAE", "links": [9]}],
+      "properties": {},
+      "widgets_values": ["ae.safetensors"]
+    },
+    {
+      "id": 4,
+      "type": "CLIPTextEncode",
+      "pos": [430, 200],
+      "size": [480, 150],
+      "inputs": [{"name": "clip", "type": "CLIP", "link": 2}],
+      "outputs": [{"name": "CONDITIONING", "type": "CONDITIONING", "links": [4]}],
+      "properties": {},
+      "widgets_values": ["a breathtaking nebula with vibrant colors, bright cinematic lighting, dramatic shadows, film grain, shallow depth of field, 9:16 vertical portrait format, no text, no watermark, no logo"]
+    },
+    {
+      "id": 7,
+      "type": "CLIPTextEncode",
+      "pos": [430, 420],
+      "size": [480, 100],
+      "inputs": [{"name": "clip", "type": "CLIP", "link": 3}],
+      "outputs": [{"name": "CONDITIONING", "type": "CONDITIONING", "links": [5]}],
+      "properties": {},
+      "widgets_values": [""]
+    },
+    {
+      "id": 5,
+      "type": "EmptySD3LatentImage",
+      "pos": [430, 570],
+      "size": [315, 106],
+      "outputs": [{"name": "LATENT", "type": "LATENT", "links": [6]}],
+      "properties": {},
+      "widgets_values": [1080, 1920, 1]
+    },
+    {
+      "id": 6,
+      "type": "KSampler",
+      "pos": [980, 280],
+      "size": [315, 262],
+      "inputs": [
+        {"name": "model",        "type": "MODEL",        "link": 1},
+        {"name": "positive",     "type": "CONDITIONING", "link": 4},
+        {"name": "negative",     "type": "CONDITIONING", "link": 5},
+        {"name": "latent_image", "type": "LATENT",       "link": 6}
+      ],
+      "outputs": [{"name": "LATENT", "type": "LATENT", "links": [7]}],
+      "properties": {},
+      "widgets_values": [42, "fixed", 20, 3.5, "euler", "simple", 1.0]
+    },
+    {
+      "id": 8,
+      "type": "VAEDecode",
+      "pos": [1360, 280],
+      "size": [210, 46],
+      "inputs": [
+        {"name": "samples", "type": "LATENT", "link": 7},
+        {"name": "vae",     "type": "VAE",    "link": 9}
+      ],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "links": [8]}],
+      "properties": {}
+    },
+    {
+      "id": 9,
+      "type": "SaveImage",
+      "pos": [1640, 280],
+      "size": [420, 180],
+      "inputs": [{"name": "images", "type": "IMAGE", "link": 8}],
+      "properties": {},
+      "widgets_values": ["pipeline"]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 6, 0, "MODEL"],
+    [2, 2, 0, 4, 0, "CLIP"],
+    [3, 2, 0, 7, 0, "CLIP"],
+    [4, 4, 0, 6, 1, "CONDITIONING"],
+    [5, 7, 0, 6, 2, "CONDITIONING"],
+    [6, 5, 0, 6, 3, "LATENT"],
+    [7, 6, 0, 8, 0, "LATENT"],
+    [8, 8, 0, 9, 0, "IMAGE"],
+    [9, 3, 0, 8, 1, "VAE"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

@@ -1,0 +1,19 @@
+{
+  "name": "datos_curiosos",
+  "display_name": "Datos Curiosos",
+  "tts_voice": "es-ES-AlvaroNeural",
+  "tts_rate": "+5%",
+  "default_style": "top5",
+  "default_scenes": 5,
+  "system_prompt_extra": "CUENTA: Datos Curiosos — curiosidades verificables que nadie conoce.\n\nAUDIENCIA: amplia, 16-40 años, buscan entretenimiento y sorpresa. Comparten el vídeo si el dato les hace pensar '¡no puede ser!'. Se enganchan con datos que contradicen lo que creían saber.\n\nFÓRMULA DE HOOK (escena 1): enuncia directamente el dato más contraintuitivo, sin introducción ni contexto. El espectador debe disentir mentalmente y necesitar la explicación. Ejemplos:\n- 'Tu cerebro toma decisiones 7 segundos antes de que lo sepas.'\n- 'Los pulpos tienen tres corazones y ninguno bombea sangre roja.'\n- 'Hay un país donde es ilegal no votar y la multa es ridícula.'\n\nESTRUCTURA POR ESCENA (formato top-5 o revelación progresiva):\n1. El dato más impactante primero — el hook que para el scroll\n2-4. Datos relacionados, cada uno más sorprendente que el anterior, siempre con número concreto y comparación cotidiana\n5. El remate — el dato final que lo conecta todo o el twist más inesperado\n\nTONO: amigo entusiasmado que acaba de descubrir algo y no puede callárselo. Energético, directo, sin pompa. 'Lo que nadie te cuenta es...', 'espera a escuchar esto...', 'y aquí viene lo mejor...'.\n\nNÚMEROS Y ESTADÍSTICAS: siempre con comparación concreta y cotidiana. No '8.000 millones de neuronas' sino '8.000 millones — más que personas hay en la Tierra'. No 'muy rápido' sino 'más rápido que un avión de combate a máxima velocidad'.\n\nVERIFICABILIDAD: cada dato debe ser real y comprobable. Nada de 'se dice que' ni 'algunos creen'. Si es un dato curioso, es un hecho.\n\nEVITAR: datos vagos, tono académico, explicaciones largas, más de un dato por escena. Cada escena = exactamente un dato concreto con su comparación.\n\nNARRACIÓN: el ritmo más rápido de las tres cuentas. Frases de 12-16 palabras. Números específicos siempre ('el 73%', 'a 300.000 km por segundo', 'en 1927'). Verbos en presente.",
+  "visual_style_prefix": "editorial photography, bold colors, dynamic composition, National Geographic style,",
+  "output_subdir": "datos_curiosos",
+  "music_files": ["ambient_upbeat_1.mp3","ambient_upbeat_2.mp3","ambient_upbeat_3.mp3","ambient_upbeat_4.mp3","ambient_upbeat_5.mp3"],
+  "music_volume_db": -11,
+  "lora_name": "",
+  "lora_strength": 0.8,
+  "color_preset": "upbeat",
+  "elevenlabs_voice_id": "",
+  "kokoro_voice": "em_alex",
+  "kokoro_speed": 0.95
+}

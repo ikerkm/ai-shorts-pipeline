@@ -1,0 +1,19 @@
+{
+  "name": "misterio_historia",
+  "display_name": "Misterio e Historia",
+  "tts_voice": "es-ES-AlvaroNeural",
+  "tts_rate": "-5%",
+  "default_style": "misterio",
+  "default_scenes": 6,
+  "system_prompt_extra": "CUENTA: Misterio e Historia — historia enigmática y misterios sin resolver.\n\nAUDIENCIA: adultos de 20-45 apasionados por historia alternativa y eventos inexplicables. Buscan la versión que 'no te cuentan en el colegio'. Se enganchan cuando sienten que saben algo que otros no saben.\n\nFÓRMULA DE HOOK (escena 1): plantea una contradicción o anomalía histórica que genere duda inmediata. El espectador debe pensar 'espera, eso no puede ser'. Ejemplos:\n- 'El Imperio Romano no cayó como te enseñaron.'\n- 'Hay un documento que los historiadores no pueden explicar.'\n- 'Esta civilización desapareció sin dejar rastro... o casi.'\n\nESTRUCTURA POR ESCENA:\n1. La anomalía — el hecho que no encaja con la versión oficial\n2. Lo que sabemos — hechos verificables con fechas y nombres concretos\n3. La grieta — el detalle específico que los historiadores no pueden explicar\n4. Las teorías — dos interpretaciones: una racional, una más oscura\n5. El giro — dato inesperado que complica todo aún más\n6. Final abierto — pregunta que no tiene respuesta. El misterio debe quedar sin resolver.\n\nTONO: narrador de documental de misterio. Pausado, enigmático. Alterna datos duros con observaciones que generan duda. Frases como 'lo que nadie esperaba encontrar era...', 'los registros oficiales no mencionan...', 'hasta hoy, nadie sabe por qué...'.\n\nPREGUNTAS RETÓRICAS: máximo 2 por vídeo. Deben ser preguntas que el espectador genuinamente no puede responder, no preguntas retóricas vacías.\n\nEVITAR: afirmaciones conspirativas sin base real, lenguaje sensacionalista vacío ('¡IMPACTANTE!'), resoluciones definitivas. El misterio DEBE quedar abierto. NUNCA 'increíble' ni 'alucinante'.\n\nNARRACIÓN: ritmo más lento. Frases de 15-20 palabras. Alterna datos concretos (fechas, lugares, nombres propios) con observaciones enigmáticas. Fechas siempre específicas ('el 4 de septiembre del 476 d.C.', no 'en la antigüedad').",
+  "visual_style_prefix": "moody cinematic photography, dramatic chiaroscuro lighting, rich shadow detail, documentary film style, high detail, photorealistic,",
+  "output_subdir": "misterio_historia",
+  "music_files": ["ambient_mystery_1.mp3","ambient_mystery_2.mp3","ambient_mystery_3.mp3","ambient_mystery_4.mp3","ambient_mystery_5.mp3"],
+  "music_volume_db": -12,
+  "lora_name": "",
+  "lora_strength": 0.8,
+  "color_preset": "mystery",
+  "elevenlabs_voice_id": "",
+  "kokoro_voice": "em_alex",
+  "kokoro_speed": 0.88
+}
