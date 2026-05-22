@@ -15,5 +15,10 @@
   "color_preset": "space",
   "elevenlabs_voice_id": "",
   "kokoro_voice": "em_alex",
-  "kokoro_speed": 0.92
+  "kokoro_speed": 0.92,
+  "youtube_category_id": "28",
+  "youtube_tags": ["ciencia", "espacio", "universo", "astronomia", "NASA", "agujerosnegros", "cosmos", "divulgacion"],
+  "youtube_description_suffix": "Ciencia espacial explicada en menos de un minuto.",
+  "youtube_channel_handle": "@CosmosEnMinutos-u8h",
+  "youtube_manager_email": "ikerkuadra@gmail.com"
 }
