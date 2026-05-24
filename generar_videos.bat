@@ -52,4 +52,8 @@ echo   - misterio_historia\
 echo   - datos_curiosos\
 echo ================================================
 echo.
-pause
+echo ================================================
+echo   Apagando el PC en 60 segundos...
+echo   Ejecuta "shutdown /a" para cancelar.
+echo ================================================
+shutdown /s /t 60

@@ -145,10 +145,14 @@ async def _stream_tts(text: str, output_path: Path, voice: str, rate: str) -> li
 
 # ── Punto de entrada ─────────────────────────────────────────────────────────
 
+_TM_CHARS = str.maketrans({'™': '', '®': '', '©': '', '℠': ''})
+
 def generate_audio(text: str, output_path: Path,
                    voice: str = None, rate: str = None,
                    elevenlabs_voice_id: str = None,
                    kokoro_voice: str = None, kokoro_speed: float = 0.92) -> tuple[Path, list[dict]]:
+    # Símbolos de marca se leen como "marca comercial" en TTS — eliminar
+    text = text.translate(_TM_CHARS)
     # 1. ElevenLabs (máxima calidad, requiere API key)
     el_key = os.getenv('ELEVENLABS_API_KEY', '').strip()
     if el_key and elevenlabs_voice_id:

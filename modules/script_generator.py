@@ -77,11 +77,188 @@ Reglas críticas:
 
     script = json.loads(text)
     script = _fix_ortografia(script)
+    return script
 
-    # Inject outro into last scene
-    last = script["scenes"][-1]
-    last["narration"] = last["narration"] + " " + script["outro"]
 
+def generate_ad_script(product: dict, num_scenes: int = 6) -> dict:
+    """Genera un guión de anuncio absurdo único — cada vídeo es diferente."""
+    num_scenes = max(4, min(6, num_scenes))
+    visual_anchor    = product["visual_anchor"]
+    visual_style     = product["visual_style"]
+    ad_tone          = product["ad_tone"]
+    product_type     = product.get("product_type", "producto")
+    usage_ritual     = product.get("usage_ritual", "")
+    problem          = product.get("problem", product.get("problem_solved", ""))
+    product_rule       = product.get("product_rule", product.get("core_logic", ""))
+    product_rule_short = product.get("product_rule_short", "")
+    product_definition = product.get("product_definition", "")
+    obs                = product.get("observable_effects", {})
+    trigger          = obs.get("trigger", "")
+    immediate_behavior = obs.get("immediate_behavior", "")
+    social_consequence = obs.get("social_consequence", "")
+    escalation       = product.get("social_behaviors", product.get("escalation", product.get("fake_benefits", [])))
+
+    system = """Eres el guionista de los anuncios absurdos más virales de España.
+
+VOZ: locutor serio que no sabe que es gracioso. Frases completas y naturales — sujeto, verbo, complemento.
+No telegráfico. No listas de sustantivos. Como un locutor de radio, no como un formulario.
+La rareza está en los hechos. El narrador los presenta como si fueran completamente normales.
+
+GUIÓN DE REFERENCIA — este es el registro exacto que debes replicar:
+  hook:             "Sigues usando champú como si tu pelo tuviera futuro."
+  problem:          "Te estás lavando el pelo sin saber que hoy es el último día que lo usas."
+  physical_demo:    "CalvoClean. Champú transparente. Te lo aplicas en la ducha como cualquier otro. El pelo empieza a caerse de forma perfectamente ordenada."
+  testimonial:      "Miguel lo usó pensando que era hidratante. Ahora peina su cuero cabelludo con orgullo y calendario."
+  social_reaction:  "En gimnasios de Valencia, los usuarios comparan brillos de cabeza como si fueran modelos de coche nuevo."
+  absurd_protocol:  "Las peluquerías han cambiado el horario: primero te lavan, luego te despiden con dignidad."
+  outro:            "Si lo entiendes tarde, ya es tarde."
+
+CUATRO PATRONES OBLIGATORIOS:
+
+1. PROBLEMA — una o dos frases con ironía ya incorporada. El espectador sonríe antes de que aparezca el producto.
+   El truco: añade "sin saber que" / "como si" / "todavía" para meter ironía sin explicarla.
+   BIEN: "Te estás lavando el pelo sin saber que hoy es el último día que lo usas."
+   MAL:  "Cada mañana caen cabellos. No sabes cuántos." — neutro, sin ironía, sin gancho.
+
+2. PHYSICAL_DEMO — el producto parece completamente normal. La rareza está solo en el efecto.
+   Cuatro frases naturales: [nombre] / [qué es, 2-3 palabras] / [cómo se usa, como si fuera lo más normal del mundo] / [el efecto absurdo, descrito con calma].
+   BIEN: "CalvoClean. Champú transparente. Te lo aplicas en la ducha como cualquier otro. El pelo empieza a caerse de forma perfectamente ordenada."
+   MAL:  "CalvaNox. Frasco negro. Lo aplicas. Los cabellos caen." — fragmentos sin sujeto, sin flujo, sin normalización del absurdo.
+   La clave: "como cualquier otro" / "como siempre" / "igual que harías" normaliza el uso. El absurdo llega solo en la última frase.
+
+3. TESTIMONIAL — contraste entre lo que alguien pensaba y lo que ocurrió.
+   FÓRMULA EXACTA: "[Nombre] lo [usó/compró] [pensando que era X / sin saber qué era]. Ahora [consecuencia absurda y específica]."
+   BIEN: "Miguel lo usó pensando que era hidratante. Ahora peina su cuero cabelludo con orgullo y calendario."
+   MAL:  "El señor Ferrándiz lleva tres carpetas AZ." — no hay historia, no hay contraste, no hay chiste.
+   El contraste entre el malentendido inicial y la consecuencia absurda ES el humor.
+
+4. OUTRO — non-sequitur o condición absurda en una sola frase que remata con ironía.
+   BIEN: "Si lo entiendes tarde, ya es tarde." / "Disponible mientras quede pelo que perder."
+   MAL:  "Disponible solo si el martes no es martes." — sin relación con el producto.
+
+PROHIBIDO:
+- Frases telegráficas sin sujeto ni verbo: "Frasco negro. Lo aplicas. Los cabel."
+- Abstracciones: "transforma", "optimiza", "mejora", "potencia", "genera confianza"
+- Testimonios sin historia ni contraste
+- Explicar el chiste con palabras como "paradójicamente" o "irónicamente"
+- Referencias que solo tengan sentido viendo la imagen
+
+IMAGEN por tipo de escena:
+- "problem":          sin producto — momento del problema, persona en situación real
+- "physical_demo":    producto en primera aparición, composición dramática
+- "social_reaction":  producto visible, persona ejecutando el ritual absurdo
+- "testimonial":      persona real con el producto, entorno cotidiano, expresión seria
+- "absurd_protocol":  producto solo, pose definitiva
+
+Respondes ÚNICAMENTE con JSON válido, sin markdown ni explicaciones."""
+
+    social_behaviors = product.get("social_behaviors", escalation)
+    escalation_text = "\n".join(f"  {i+1}. {e}" for i, e in enumerate(social_behaviors))
+
+    prompt = f"""Crea un guión de anuncio absurdo para TikTok/Shorts (~50 segundos).
+
+═══ PRODUCTO ═══
+NOMBRE: {product['product_name']}
+QUÉ ES: {product_definition}
+ESLOGAN: {product['tagline']}
+EN POCAS PALABRAS: {product_rule_short}
+RITUALES QUE HA GENERADO:
+{escalation_text}
+
+═══ GUIÓN — {num_scenes} ESCENAS ═══
+
+Escena 1 [problem]: el momento del problema. 1-2 frases que lo cierran de golpe.
+  El oyente entiende la situación sin ver nada. Sin referencias visuales implícitas.
+  Ejemplo: "Te estás lavando el pelo sin saber que hoy es el último día que lo usas."
+
+Escena 2 [physical_demo]: presenta el producto con naturalidad. 3-4 frases conversacionales.
+  Qué es + cómo se usa + qué pasa. Claro sin esfuerzo. No suena a prospecto médico.
+  La frase "{product_rule_short}" debe aparecer en esta escena donde fluya mejor.
+  Ejemplo: "CalvoClean. Champú transparente. Te lo aplicas en la ducha como cualquier otro. El pelo empieza a caerse de forma perfectamente ordenada."
+
+Escenas 3 a {num_scenes-1} [social_reaction / testimonial]:
+  social_reaction → UNA SOLA FRASE que describa qué pasa cuando todos tienen el producto a la vez.
+    La gracia es que el producto resuelve el problema individual pero cuando todos lo usan, aparece un caos nuevo e inesperado.
+    La frase debe ser fluida, con sujeto y verbo claros, sin fragmentos telegráficos.
+    BIEN: "En el Mercanova de la calle Béjar, el noventa por ciento de los carritos llevan parche y la caja rápida lleva tres semanas sin un solo cliente."
+    BIEN: "Toda la plantilla lleva la oblea encima y las reuniones duran cuatro minutos, así que ahora convocan dos seguidas para rellenar el hueco."
+    BIEN: "Desde que todos los socios llevan el parche, las máquinas están siempre libres y la cola más larga del gimnasio es la de la fuente de agua."
+    MAL (telegráfico, no usar): "Todos llevan parche. Las máquinas vacías. La fuente tiene cola."
+  testimonial → nombre propio + mini-historia de 2 frases con ironía seca.
+    FÓRMULA: "[Nombre] lo [usó/compró] [pensando que era X]. Ahora [consecuencia absurda específica]."
+    Ejemplo: "Miguel lo usó pensando que era hidratante. Ahora peina su cuero cabelludo con orgullo y calendario."
+    Si es testimonial: añade campo "voice" (masculinas: "em_santa"/"pm_santa", femeninas: "ef_dora"/"pf_dora").
+
+Escena {num_scenes} [absurd_protocol]: remate de una frase con punch. Puede ser institucional o cotidiano.
+  Ejemplo: "Las peluquerías han cambiado el horario: primero te lavan, luego te despiden con dignidad."
+
+Outro: una frase de cierre inesperada con ironía. Que corte.
+  Ejemplo: "Si lo entiendes tarde, ya es tarde."
+
+PROHIBIDO en la narración: nombres de locales concretos, nombres de ciudades, nombres de calles.
+  MAL: "En el gimnasio Olympia de Albacete..." / "En el Mercanova de la calle Béjar..."
+  BIEN: "En el gimnasio..." / "En el supermercado..." / "En la oficina..."
+
+LÍMITE: ~{num_scenes * 18} palabras en total. Ortografía española perfecta: tildes y ñ siempre.
+
+═══ FORMATO JSON — {num_scenes} escenas completas ═══
+{{
+  "title": "nombre del producto + gancho absurdo (máx 60 chars)",
+  "hook": "frase de apertura del problema, sin mencionar el producto (máx 12 palabras)",
+  "core_chain": {{
+    "problem": "el problema en una frase",
+    "mechanism": "qué hace el producto que resuelve eso",
+    "result": "qué le pasa al espectador como consecuencia directa"
+  }},
+  "scenes": [
+    {{
+      "id": 1,
+      "scene_type": "problem",
+      "narration": "el momento del problema — concreto, sin producto, MÁXIMO 15 palabras",
+      "image_prompt": "NO PRODUCT. {visual_style}. Show the human problem moment: specific realistic environment, specific person in the problematic situation. Medium or wide shot. 9:16 vertical, cinematic, natural lighting, no text overlay.",
+      "image_negative": "product, bottle, jar, packaging, container, blurry, text overlay, watermark",
+      "use_wan": true,
+      "video_prompt": "slow cinematic motion of the problem scene — one specific element moving + slow camera motion. consistent stable lighting, no light variation."
+    }},
+    {{
+      "id": 2,
+      "scene_type": "physical_demo",
+      "narration": "nombre del producto + qué hace físicamente + qué hace la persona afectada de inmediato — MÁXIMO 22 palabras",
+      "image_prompt": "{visual_anchor} — dramatic 3/4 angle, elevated, on elegant surface (marble or slate), {visual_style}, strong directional light, deep shadow, 9:16 vertical, no text.",
+      "image_negative": "blurry, text overlay, watermark, wrong colors, inconsistent design",
+      "use_wan": true,
+      "video_prompt": "slow zoom-in toward the product with gentle rotation, light catching the surface edge. consistent stable lighting, no light variation."
+    }}
+  ],
+  "outro": "condición de compra imposible, dicha con calma (máx 8 palabras)"
+}}
+
+ESCENAS 3 A {num_scenes}:
+- scene_type: "social_reaction" para rituales del entorno, "testimonial" para persona concreta en primera persona, "absurd_protocol" para el cierre
+- narration: MÁXIMO 20 palabras — frase corta + detalle concreto, nada más
+- PRODUCT image_prompt: siempre "{visual_anchor}" + composición diferente por escena (close-up / held in hand / worm's eye / lying on side) + {visual_style}
+- TESTIMONIAL image_prompt: persona descrita físicamente (edad, aspecto, ropa, expresión deadpan) usando o sosteniendo {visual_anchor}, en entorno cotidiano real, {visual_style}
+- CTA image_prompt: "{visual_anchor}" centrado, luz lateral dramática, {visual_style}
+- Narración DISTINTA en cada escena, siempre avanzando la cadena
+- NO incluyas ™ ni ® en narración — solo en el title
+- Ortografía española perfecta: tildes y ñ siempre"""
+
+    response = client.messages.create(
+        model="claude-opus-4-7",
+        max_tokens=4096,
+        system=system,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    text = response.content[0].text.strip()
+    if "```" in text:
+        text = text.split("```")[1]
+        if text.startswith("json"):
+            text = text[4:]
+        text = text.strip()
+
+    script = json.loads(text)
+    script = _fix_ortografia(script)
     return script
 
 

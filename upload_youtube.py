@@ -64,29 +64,31 @@ def _build_metadata(profile: dict, topic: str) -> dict:
     }
 
 
-def upload_pending(account_name: str):
+def upload_pending(account_name: str, limit: int = None):
     profile = load_account(account_name)
     data    = _load_log(account_name)
     runs    = data.get("runs", [])
 
     pending = [r for r in runs if r.get("video") not in ("", "ERROR") and not r.get("youtube_url")]
 
+    # Filtrar archivos que ya no existen en disco (generados antes de integrar upload)
+    pending = [r for r in pending if Path(r["video"]).exists()]
+
     if not pending:
         print(f"  [{account_name}] No hay vídeos pendientes de subir.")
         return
 
+    if limit is not None:
+        pending = pending[:limit]
+
     print(f"\n{'='*55}")
     print(f"  YOUTUBE UPLOAD: {profile['display_name']}")
-    print(f"  Pendientes: {len(pending)}")
+    print(f"  Subiendo: {len(pending)} vídeo(s)")
     print(f"{'='*55}")
 
     for run in pending:
         video_path = Path(run["video"])
         topic      = run.get("topic", video_path.stem)
-
-        if not video_path.exists():
-            print(f"  [!] Archivo no encontrado: {video_path}")
-            continue
 
         print(f"\n  Subiendo: {topic}")
         meta = _build_metadata(profile, topic)
@@ -148,6 +150,8 @@ def main():
 
     parser.add_argument("--file",  help="Ruta al vídeo (upload manual)")
     parser.add_argument("--topic", help="Tema del vídeo (requerido con --file)")
+    parser.add_argument("--limit", type=int, default=None,
+                        help="Máximo de vídeos a subir por ejecución (default: todos)")
     parser.add_argument("--auth-only", action="store_true",
                         help="Solo autenticar, no subir")
     args = parser.parse_args()
@@ -162,7 +166,7 @@ def main():
                 print(f"  Token guardado para {account}")
                 print(f"  Canal autenticado: {info['title']} (id: {info['id']})")
             else:
-                upload_pending(account)
+                upload_pending(account, limit=args.limit)
         return
 
     account_name = args.account
@@ -180,7 +184,7 @@ def main():
             parser.error("--file requiere --topic")
         upload_single(account_name, Path(args.file), args.topic)
     else:
-        upload_pending(account_name)
+        upload_pending(account_name, limit=args.limit)
 
 
 if __name__ == "__main__":

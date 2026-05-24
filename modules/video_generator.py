@@ -237,7 +237,7 @@ def _queue_prompt(workflow: dict) -> str:
     return json.loads(resp.read())["prompt_id"]
 
 
-def _wait_for_completion(prompt_id: str, timeout: int = 600) -> dict:
+def _wait_for_completion(prompt_id: str, timeout: int = 1800) -> dict:
     start = time.time()
     while time.time() - start < timeout:
         history = json.loads(
@@ -328,7 +328,7 @@ def generate_wan_video(
     img_name = _upload_image(image_path)
     wf = _build_wan_workflow(img_name, video_prompt, seed, gen_frames)
     pid = _queue_prompt(wf)
-    result = _wait_for_completion(pid, timeout=600)
+    result = _wait_for_completion(pid, timeout=1800)
     raw_src = _get_vhs_output(result)
 
     print(f"    [UP]  RTX ULTRA + RIFE ×{_RIFE_MULTIPLIER} → 1080×1920 @{_UPSCALED_FPS}fps")
@@ -338,7 +338,7 @@ def generate_wan_video(
     try:
         up_wf = _build_upscaler_workflow(vid_name)
         up_pid = _queue_prompt(up_wf)
-        up_result = _wait_for_completion(up_pid, timeout=300)
+        up_result = _wait_for_completion(up_pid, timeout=1800)
         up_src = _get_vhs_output(up_result)
     finally:
         (COMFYUI_INPUT_DIR / vid_name).unlink(missing_ok=True)

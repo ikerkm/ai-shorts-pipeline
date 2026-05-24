@@ -19,7 +19,6 @@ import anthropic
 sys.path.insert(0, str(Path(__file__).parent))
 from config import ANTHROPIC_API_KEY, ACCOUNTS_DIR, BASE_DIR, load_account
 from pipeline import run
-from upload_youtube import upload_pending
 
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
@@ -137,7 +136,6 @@ def run_account(account_name: str, n_videos: int):
             elapsed = time.time() - t0
             save_run(account_name, topic, video_path, elapsed)
             print(f"  Completado en {elapsed/60:.1f} min → {video_path.name}")
-            upload_pending(account_name)
         except Exception as e:
             elapsed = time.time() - t0
             print(f"  [ERROR] {e}")

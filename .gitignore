@@ -39,3 +39,7 @@ music/*.mp3
 # Windows
 Thumbs.db
 desktop.ini
+$null
+
+# Scripts de prueba locales
+test_*.py

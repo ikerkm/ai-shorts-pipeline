@@ -80,7 +80,7 @@ def _queue_prompt(workflow: dict) -> str:
     return json.loads(urllib.request.urlopen(req).read())["prompt_id"]
 
 
-def _wait_for_completion(prompt_id: str, timeout: int = 600) -> dict:
+def _wait_for_completion(prompt_id: str, timeout: int = 1800) -> dict:
     start = time.time()
     while time.time() - start < timeout:
         history = json.loads(

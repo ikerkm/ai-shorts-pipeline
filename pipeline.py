@@ -23,8 +23,10 @@ if sys.stderr.encoding != 'utf-8':
 
 sys.path.insert(0, str(Path(__file__).parent))
 from config import TEMP_DIR, OUTPUT_DIR, FFMPEG, VIDEO_WIDTH, VIDEO_HEIGHT, load_account
-from modules.script_generator import generate_script
+from modules.script_generator import generate_script, generate_ad_script
+from modules.product_generator import generate_product
 from modules.image_generator import generate_image
+from modules.image_generator_ads import generate_product_hero, generate_scene_from_hero
 from modules.tts_generator import generate_audio, get_audio_duration, release_kokoro
 from modules.subtitle_generator import generate_ass
 from modules.video_assembler import (
@@ -90,9 +92,36 @@ def run(topic: str, style: str = None, num_scenes: int = None,
         print()
     print(f"{'='*55}")
 
+    # ── 0. Producto (solo cuenta anuncios) ────────────────────
+    product = None
+    ad_style_hint = p.get("ad_style_hint") or None
+    if p.get("account_type") == "anuncios":
+        print("\n[0/5] Generando concepto de producto...")
+        product = generate_product(topic, style_hint=ad_style_hint)
+        # Overrides dinámicos basados en el brief del producto
+        kokoro_speed = float(product.get("tts_speed", kokoro_speed))
+        _style_to_preset = {
+            "upbeat": "upbeat", "space": "space", "mystery": "mystery",
+            "ad_corporate": "none", "ad_infomercial": "upbeat", "ad_luxury": "mystery",
+        }
+        color_preset = _style_to_preset.get(product.get("music_style", ""), color_preset)
+        _music_map = {
+            "upbeat":          p.get("music_upbeat",          music_files),
+            "space":           p.get("music_space",           music_files),
+            "mystery":         p.get("music_mystery",         music_files),
+            "ad_corporate":    p.get("music_ad_corporate",    music_files),
+            "ad_infomercial":  p.get("music_ad_infomercial",  music_files),
+            "ad_luxury":       p.get("music_ad_luxury",       music_files),
+        }
+        music_files = _music_map.get(product.get("music_style", ""), music_files)
+        visual_style_prefix = ""  # los image_prompts del ad llevan su propio estilo
+
     # ── 1. Script ─────────────────────────────────────────────
     print("\n[1/5] Generando guion con Claude Sonnet...")
-    script = generate_script(topic, effective_style, effective_scenes, system_prompt_extra)
+    if product:
+        script = generate_ad_script(product, effective_scenes)
+    else:
+        script = generate_script(topic, effective_style, effective_scenes, system_prompt_extra)
     print(f"  Titulo : {script['title']}")
     print(f"  Escenas: {len(script['scenes'])}")
     (job_dir / "script.json").write_text(
@@ -102,13 +131,38 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     # ── 2a. Imágenes (ComfyUI/Flux — GPU exclusivo, sin Kokoro activo) ────────
     print("\n[2/5] Generando imagenes...")
     img_paths = []
+
+    # Anuncios: generar hero image primero, luego img2img por escena
+    hero_path = None
+    if product and not test_mode:
+        print(f"\n  [HERO] Generando imagen base del producto...")
+        hero_path = job_dir / "product_hero.png"
+        generate_product_hero(
+            visual_anchor=product["visual_anchor"],
+            visual_style=product["visual_style"],
+            seed=random.randint(1, 2**31),
+            output_path=hero_path,
+        )
+
     for i, scene in enumerate(script["scenes"]):
-        print(f"\n  Escena {i+1}/{len(script['scenes'])}: {scene['narration'][:50]}...")
+        scene_type = scene.get("scene_type", "product")
+        print(f"\n  Escena {i+1}/{len(script['scenes'])} [{scene_type}]: {scene['narration'][:45]}...")
         img_path = job_dir / f"scene_{i:02d}.png"
+
         if test_mode:
             _placeholder_image(img_path)
             print(f"    [IMG] placeholder (modo test)")
+        elif hero_path and scene_type not in ("problem", "testimonial"):
+            # Escenas de producto y CTA: img2img desde hero para coherencia visual
+            generate_scene_from_hero(
+                scene_prompt=scene["image_prompt"],
+                negative=scene.get("image_negative", "blurry, low quality, text, watermark"),
+                hero_path=hero_path,
+                seed=random.randint(1, 2**31),
+                output_path=img_path,
+            )
         else:
+            # Problema y testimonio: text2img libre (persona o entorno sin restricción del hero)
             generate_image(
                 prompt=scene["image_prompt"],
                 negative=scene.get("image_negative", "blurry, low quality, text, watermark"),
@@ -125,10 +179,11 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     scenes_data = []
     for i, scene in enumerate(script["scenes"]):
         audio_path = job_dir / f"audio_{i:02d}.mp3"
+        scene_kokoro_voice = scene.get("voice") or kokoro_voice
         _, word_timings = generate_audio(scene["narration"], audio_path,
                                          voice=tts_voice, rate=tts_rate,
                                          elevenlabs_voice_id=elevenlabs_voice_id,
-                                         kokoro_voice=kokoro_voice,
+                                         kokoro_voice=scene_kokoro_voice,
                                          kokoro_speed=kokoro_speed)
         duration = get_audio_duration(audio_path)
         print(f"    [TTS {i+1}] {duration:.1f}s")
@@ -230,9 +285,14 @@ def main():
                         help="Numero de escenas 3-8 (sobreescribe el del perfil)")
     parser.add_argument("--test", action="store_true",
                         help="Modo test: 1 escena, imagen placeholder, sin musica (~20s)")
+    parser.add_argument("--ad-style", default=None,
+                        choices=["ad_corporate", "ad_infomercial", "ad_luxury"],
+                        help="Fuerza un estilo visual/musical para anuncios_absurdos")
     args = parser.parse_args()
 
     profile = load_account(args.account) if args.account else {}
+    if args.ad_style:
+        profile["ad_style_hint"] = args.ad_style
     run(args.topic, style=args.style, num_scenes=args.scenes, profile=profile,
         test_mode=args.test)
 
