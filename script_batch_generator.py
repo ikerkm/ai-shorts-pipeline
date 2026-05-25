@@ -213,10 +213,10 @@ def _generate_topics_what_if(n: int, used_topics: set) -> list[str]:
             "para vídeos de divulgación científica en TikTok/Shorts. "
             "Cubre variedad: condiciones de otros planetas, configuración del sistema solar, "
             "cambios en la Luna/Sol, eje terrestre, campo magnético, etc. "
-            "Cada hipótesis debe tener consecuencias concretas y visualizables.{used_str}\n\n"
-            f'Responde SOLO con JSON: {{"topics": ["Y si ...", "Y si ...", ...]}} '
+            f"Cada hipótesis debe tener consecuencias concretas y visualizables.{used_str}\n\n"
+            'Responde SOLO con JSON: {"topics": ["Y si ...", "Y si ...", ...]} '
             "Máx 70 chars por hipótesis. Sin emojis. Español con tildes y ñ."
-        ).format(used_str=used_str)}]
+        )}]
     )
     text = response.content[0].text.strip()
     if "```" in text:
