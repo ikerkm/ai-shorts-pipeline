@@ -149,9 +149,9 @@ def run_account(account_name: str, n_videos: int):
 
         t0 = time.time()
         try:
-            video_path = run(topic, profile=profile)
+            video_path, actual_topic = run(topic, profile=profile)
             elapsed = time.time() - t0
-            save_run(account_name, topic, video_path, elapsed)
+            save_run(account_name, actual_topic, video_path, elapsed)
             print(f"  Completado en {elapsed/60:.1f} min → {video_path.name}")
         except Exception as e:
             elapsed = time.time() - t0

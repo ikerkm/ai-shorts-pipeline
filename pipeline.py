@@ -99,6 +99,7 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     output_dir = OUTPUT_DIR / out_subdir if out_subdir else OUTPUT_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    actual_topic = topic  # puede cambiar si se carga un guión del pending
     safe_topic = "".join(c if c.isascii() and (c.isalnum() or c == '_') else '_' for c in topic[:25].replace(' ', '_'))
     job_id = f"{int(time.time())}_{safe_topic}"
     job_dir = TEMP_DIR / job_id
@@ -137,6 +138,7 @@ def run(topic: str, style: str = None, num_scenes: int = None,
                 cached_data   = json.loads(pending_files[0].read_text(encoding="utf-8"))
                 product       = cached_data["product"]
                 cached_script = cached_data["script"]
+                actual_topic  = cached_data.get("topic", topic)
                 effective_scenes = len(cached_script["scenes"])
                 processed_dir.mkdir(parents=True, exist_ok=True)
                 pending_files[0].rename(processed_dir / pending_files[0].name)
@@ -185,6 +187,7 @@ def run(topic: str, style: str = None, num_scenes: int = None,
             if _pfiles:
                 _data  = json.loads(_pfiles[0].read_text(encoding="utf-8"))
                 script = _data["script"]
+                actual_topic = _data.get("topic", topic)
                 _processed.mkdir(parents=True, exist_ok=True)
                 _pfiles[0].rename(_processed / _pfiles[0].name)
                 print(f"\n[1/5] Guion what_if cargado del cache: {_pfiles[0].name}")
@@ -199,6 +202,7 @@ def run(topic: str, style: str = None, num_scenes: int = None,
             if _pfiles:
                 _data  = json.loads(_pfiles[0].read_text(encoding="utf-8"))
                 script = _data["script"]
+                actual_topic = _data.get("topic", topic)
                 _processed.mkdir(parents=True, exist_ok=True)
                 _pfiles[0].rename(_processed / _pfiles[0].name)
                 print(f"\n[1/5] Guion cargado del cache: {_pfiles[0].name}")
@@ -400,7 +404,7 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     print(f"  Tamano: {size_mb:.1f} MB")
     print(f"{'='*55}\n")
 
-    return final
+    return final, actual_topic
 
 
 def main():
@@ -428,8 +432,11 @@ def main():
     profile = load_account(args.account) if args.account else {}
     if args.ad_style:
         profile["ad_style_hint"] = args.ad_style
-    run(args.topic, style=args.style, num_scenes=args.scenes, profile=profile,
-        test_mode=args.test, script_file=args.script_file, script_type=args.script_type)
+    video_path, actual_topic = run(args.topic, style=args.style, num_scenes=args.scenes,
+                                   profile=profile, test_mode=args.test,
+                                   script_file=args.script_file, script_type=args.script_type)
+    if actual_topic != args.topic:
+        print(f"  Tema real usado: {actual_topic}")
 
 
 if __name__ == "__main__":
