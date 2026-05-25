@@ -262,6 +262,99 @@ ESCENAS 3 A {num_scenes}:
     return script
 
 
+def generate_what_if_script(hypothesis: str, num_scenes: int = 6) -> dict:
+    """Genera un guión hipotético 'Y si...' — condiciones aplicadas a la Tierra."""
+    num_scenes = max(5, min(7, num_scenes))
+
+    system = """Eres un guionista especializado en divulgación científica viral para TikTok y YouTube Shorts en español.
+Tu especialidad son los vídeos hipotéticos: aplicas condiciones reales de otros planetas, estrellas o configuraciones
+del sistema solar a la Tierra y describes las consecuencias en cadena con rigor científico y ritmo viral.
+
+REGLA ABSOLUTA — ORTOGRAFÍA ESPAÑOLA:
+Todo texto en español debe tener tildes y eñe correctas. Sin excepción.
+CORRECTO: también, físicos, años, canción, después, más, qué, cómo, así, energía, único
+INCORRECTO: tambien, fisicos, anos, cancion, despues, mas, que, como, asi, energia, unico
+
+PRINCIPIOS NARRATIVOS:
+- Empieza IN MEDIA RES: la condición YA está aplicada. No "si tuviéramos X" — "ahora mismo, X ocurre"
+- Cadena de causas: cada escena es consecuencia directa de la anterior, no efectos paralelos independientes
+- Números siempre concretos: "2,4 veces más" no "mucho más". "318 veces la masa" no "enormemente mayor"
+- Comparaciones cotidianas obligatorias: explica la escala con cosas reales (peso corporal, km en coche, temperatura de horno)
+- El remate reencuadra toda la hipótesis con una perspectiva inesperada o un dato que nadie espera
+- NUNCA "interesante", "fascinante", "increíble" — el dato lo demuestra solo
+
+HOOK — REGLA CRÍTICA:
+El hook debe cumplir DOS condiciones simultáneamente:
+1. Consecuencia que se siente en el cuerpo o en la vida diaria — NO fenómenos geológicos o marinos abstractos
+2. Dato que destruye una percepción: algo que el espectador nunca habría relacionado con la hipótesis
+BIEN: "Sin la Luna, un día duraría 6 horas. Tendrías cuatro amaneceres antes de comer." — escala temporal en lo cotidiano
+BIEN: "Sin la Luna, los vientos permanentes alcanzan 300 km/h. Nadie puede salir a la calle." — consecuencia física e inmediata
+BIEN: "Tu cuerpo pesa 168 kilos ahora mismo. Nadie puede levantarse del suelo." — impacto directo en el cuerpo
+MAL: "Las costas del mundo pierden sus mareas." — geológico, abstracto, sin impacto personal
+MAL: "El nivel del mar cambia." — vago, sin número, sin cuerpo
+
+TONO: científico pero accesible, como contarle algo alucinante a un amigo. Usa "imagina que", "esto significa que", "lo que nadie menciona es".
+
+Respondes ÚNICAMENTE con JSON válido, sin markdown ni explicaciones."""
+
+    prompt = f"""Crea un guión para el vídeo hipotético: "{hypothesis}"
+Número de escenas: {num_scenes}
+
+ESTRUCTURA OBLIGATORIA:
+- Escena 1 [hook]: La condición ya está activa. Elige el efecto que más se siente en el cuerpo o en la rutina diaria — no mareas, no geología, no fenómenos marinos. Dato numérico concreto + consecuencia personal inmediata. Constatación, no pregunta. Máx 18 palabras.
+- Escena 2 [fisica]: El cambio físico fundamental con números reales comparados con algo cotidiano. Máx 20 palabras.
+- Escenas 3-{num_scenes - 2} [cascada]: Consecuencias en cadena — cada una deriva directamente de la anterior. Mezcla física, clima, geología, biología según la hipótesis. Máx 20 palabras cada una.
+- Escena {num_scenes - 1} [humanos]: Qué le ocurre concretamente a la vida o la civilización humana. Específico, no genérico. Máx 20 palabras.
+- Escena {num_scenes} [remate]: Giro final. Puede ser: "esto ya ocurre en el planeta X", "la única razón por la que no pasa es Y", "en realidad la Tierra rozó esta condición hace Z millones de años". Máx 20 palabras.
+
+IMAGEN — REGLA CRÍTICA:
+Cada imagen muestra la Tierra o la superficie terrestre bajo la condición alterada. Opciones:
+- Vista espacial de la Tierra con la alteración visible (atmósfera, tamaño, anillos, órbita)
+- Superficie terrestre con el efecto físico (océanos, montañas, cielo, vegetación alterados)
+- Escala humana: ciudad, persona, objeto cotidiano bajo la condición
+- NUNCA el planeta/estrella que "presta" la condición — siempre enfocado en la Tierra
+
+Devuelve exactamente este JSON con {num_scenes} escenas completas:
+{{
+  "title": "Y si [hipótesis resumida] — gancho (máx 60 chars)",
+  "hook": "primer efecto inmediato — frase que destruye la percepción del espectador (máx 12 palabras)",
+  "scenes": [
+    {{
+      "id": 1,
+      "scene_type": "hook",
+      "narration": "presente continuo, concreto, impactante (máx 18 palabras)",
+      "image_prompt": "cinematic scene in English — Earth or Earth surface under the altered condition. NASA Hubble astrophotography style. Specific altered environment: different sky color, extreme terrain, altered oceans, planetary ring visible. Properly exposed, dramatic lighting, rich colors. 9:16 vertical. NOT generic — must show THIS specific effect.",
+      "image_negative": "blurry, overexposed, blown out, text, watermark, logo, generic stock photo, silhouette, bad anatomy",
+      "video_prompt": "slow cinematic motion in English — one specific element moves gently (atmosphere swirling, ocean surface, clouds drifting). Camera: slow zoom-out / gentle push-in. consistent stable lighting, no light variation."
+    }}
+  ],
+  "outro": "pregunta o reflexión que deja al espectador pensando (máx 10 palabras)"
+}}
+
+LÍMITE TOTAL: máx {num_scenes * 20} palabras de narración en total.
+NO emojis ni símbolos (@, #, *, &, %) en ningún campo.
+Ortografía española perfecta: tildes y ñ siempre (á, é, í, ó, ú, ñ)."""
+
+    response = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2500,
+        system=system,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    text = response.content[0].text.strip()
+    if "```" in text:
+        text = text.split("```")[1]
+        if text.startswith("json"):
+            text = text[4:]
+        text = text.strip()
+
+    script = json.loads(text)
+    script["script_type"] = "what_if"
+    script = _fix_ortografia(script)
+    return script
+
+
 def _fix_ortografia(script: dict) -> dict:
     """Corrección automática de ortografía en todos los campos de texto en español."""
     fields = {"title": script.get("title", ""), "hook": script.get("hook", ""),

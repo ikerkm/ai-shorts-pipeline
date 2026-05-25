@@ -6,6 +6,8 @@ Uso:
   python pipeline.py "tema del video" --account misterio_historia --scenes 6
   python pipeline.py "tema del video" --account datos_curiosos --test
 """
+import math
+import re
 import subprocess
 import sys
 import json
@@ -23,7 +25,7 @@ if sys.stderr.encoding != 'utf-8':
 
 sys.path.insert(0, str(Path(__file__).parent))
 from config import BASE_DIR, TEMP_DIR, OUTPUT_DIR, FFMPEG, VIDEO_WIDTH, VIDEO_HEIGHT, load_account
-from modules.script_generator import generate_script, generate_ad_script
+from modules.script_generator import generate_script, generate_ad_script, generate_what_if_script
 from modules.product_generator import generate_product
 from modules.image_generator import generate_image
 from modules.image_generator_ads import generate_product_hero, generate_scene_from_hero
@@ -47,9 +49,29 @@ def _placeholder_image(output_path: Path, color: str = "0x0a0a1a"):
     ], capture_output=True)
 
 
+_ANGLE_SWAPS = [
+    ("aerial view", "ground-level wide shot"),
+    ("ground-level wide shot", "extreme close-up"),
+    ("wide establishing shot", "medium close-up shot"),
+    ("medium close-up shot", "wide establishing shot"),
+    ("wide shot", "intimate close-up shot"),
+    ("close-up", "wide establishing shot"),
+    ("from above", "low angle looking up"),
+    ("low angle", "high aerial overview"),
+    ("overhead", "ground-level perspective"),
+]
+
+def _vary_image_prompt(prompt: str) -> str:
+    """Devuelve una variante del prompt con ángulo de cámara diferente."""
+    for old, new in _ANGLE_SWAPS:
+        if old.lower() in prompt.lower():
+            return re.sub(re.escape(old), new, prompt, flags=re.IGNORECASE)
+    return "Different perspective, closer detail — " + prompt
+
+
 def run(topic: str, style: str = None, num_scenes: int = None,
         profile: dict = None, test_mode: bool = False,
-        script_file: Path = None) -> Path:
+        script_file: Path = None, script_type: str = None) -> Path:
     p = profile or {}
 
     # Profile defaults, then function args, then hardcoded fallback
@@ -148,6 +170,9 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     elif product:
         print("\n[1/5] Generando guion con Claude Opus...")
         script = generate_ad_script(product, effective_scenes)
+    elif script_type == "what_if":
+        print("\n[1/5] Generando guion hipotetico (what_if) con Claude Sonnet...")
+        script = generate_what_if_script(topic, effective_scenes)
     else:
         # cuentas regulares: comprobar pending/ antes de llamar a Claude
         _pending  = BASE_DIR / "scripts" / account_key / "pending"
@@ -237,7 +262,30 @@ def run(topic: str, style: str = None, num_scenes: int = None,
             "zoom_in": ZOOM_CYCLE[i % len(ZOOM_CYCLE)],
             "use_wan": bool(scene.get("use_wan", False)),
             "video_prompt": scene.get("video_prompt", "slow gentle camera push-in, smooth motion"),
+            "image_prompt": scene.get("image_prompt", ""),
+            "image_negative": scene.get("image_negative", "blurry, low quality, text, watermark"),
         })
+
+    # Pre-pass: generar imágenes variantes para escenas largas (audio > 7.5s → 2 clips Wan)
+    WAN_MAX_S = 7.5
+    if not test_mode and not product:
+        for i, sd in enumerate(scenes_data):
+            if sd["duration"] > WAN_MAX_S:
+                n_splits = math.ceil(sd["duration"] / WAN_MAX_S)
+                print(f"  [SPLIT] Escena {i+1}: {sd['duration']:.1f}s → {n_splits} clips, generando {n_splits-1} imagen(es) variante(s)...")
+                sd["img_paths_split"] = [sd["img_path"]]
+                for j in range(1, n_splits):
+                    img_var = job_dir / f"scene_{i:02d}_{j}.png"
+                    generate_image(
+                        prompt=_vary_image_prompt(sd["image_prompt"]),
+                        negative=sd["image_negative"],
+                        seed=random.randint(1, 2**31),
+                        output_path=img_var,
+                        style_prefix=visual_style_prefix,
+                        lora_name=lora_name,
+                        lora_strength=lora_strength,
+                    )
+                    sd["img_paths_split"].append(img_var)
 
     # Liberar Kokoro de VRAM antes de que arranque Wan
     release_kokoro()
@@ -253,6 +301,30 @@ def run(topic: str, style: str = None, num_scenes: int = None,
         if test_mode:
             create_scene_clip(sd["img_path"], sd["duration"], clip, sd["zoom_in"])
             print(f"  Clip {i+1} [KB/test] OK")
+        elif "img_paths_split" in sd:
+            # Escena larga: N sub-clips con imágenes variantes, sin loops
+            img_list = sd["img_paths_split"]
+            n = len(img_list)
+            sub_dur = sd["duration"] / n
+            sub_clips = []
+            ok = True
+            for j, img_p in enumerate(img_list):
+                sub = job_dir / f"clip_{i:02d}_{j}.mp4"
+                try:
+                    generate_wan_video(
+                        image_path=img_p,
+                        video_prompt=sd["video_prompt"],
+                        seed=random.randint(1, 2**31),
+                        output_path=sub,
+                        duration_s=sub_dur,
+                    )
+                except Exception as e:
+                    print(f"  Clip {i+1}.{j} [WAN] FALLO ({e}) — usando Ken Burns")
+                    create_scene_clip(img_p, sub_dur, sub, sd["zoom_in"])
+                    ok = False
+                sub_clips.append(sub)
+            concat_videos(sub_clips, clip)
+            print(f"  Clip {i+1} [WAN×{n}] {'OK' if ok else 'parcial KB'}")
         else:
             try:
                 generate_wan_video(
@@ -330,13 +402,16 @@ def main():
                         help="Fuerza un estilo visual/musical para anuncios_absurdos")
     parser.add_argument("--script-file", default=None,
                         help="Ruta a un JSON de guion pre-generado; lo usa sin moverlo a processed/")
+    parser.add_argument("--script-type", default=None,
+                        choices=["what_if"],
+                        help="Tipo de guion especial (what_if: hipotesis aplicadas a la Tierra)")
     args = parser.parse_args()
 
     profile = load_account(args.account) if args.account else {}
     if args.ad_style:
         profile["ad_style_hint"] = args.ad_style
     run(args.topic, style=args.style, num_scenes=args.scenes, profile=profile,
-        test_mode=args.test, script_file=args.script_file)
+        test_mode=args.test, script_file=args.script_file, script_type=args.script_type)
 
 
 if __name__ == "__main__":
