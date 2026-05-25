@@ -44,22 +44,22 @@ def _save_log(account_name: str, data: dict):
     )
 
 
-def _build_metadata(profile: dict, topic: str) -> dict:
-    account_name = profile["name"]
-    display_name = profile["display_name"]
-    tags_base     = profile.get("youtube_tags", [])
-    category_id   = profile.get("youtube_category_id", "28")
-    desc_suffix   = profile.get("youtube_description_suffix", "")
+def _build_metadata(profile: dict, topic: str, dynamic_tags: list = None) -> dict:
+    tags_base   = profile.get("youtube_tags", [])
+    category_id = profile.get("youtube_category_id", "28")
+    desc_suffix = profile.get("youtube_description_suffix", "")
+
+    # Mezclar: dinámicos primero (más relevantes), luego base, sin duplicados
+    combined = list(dict.fromkeys((dynamic_tags or []) + tags_base))
 
     title = f"{topic} #Shorts"
-
-    hashtags = " ".join(f"#{t.replace(' ', '')}" for t in tags_base)
+    hashtags = " ".join(f"#{t.replace(' ', '')}" for t in combined)
     description = f"{topic}\n\n{desc_suffix}\n\n{hashtags} #Shorts".strip()
 
     return {
         "title": title,
         "description": description,
-        "tags": tags_base + ["Shorts", "shorts"],
+        "tags": combined + ["Shorts", "shorts"],
         "category_id": category_id,
     }
 
@@ -88,10 +88,11 @@ def upload_pending(account_name: str, limit: int = None):
 
     for run in pending:
         video_path = Path(run["video"])
-        topic      = run.get("topic", video_path.stem)
+        topic       = run.get("topic", video_path.stem)
+        dynamic_tags = run.get("tags", [])
 
         print(f"\n  Subiendo: {topic}")
-        meta = _build_metadata(profile, topic)
+        meta = _build_metadata(profile, topic, dynamic_tags=dynamic_tags)
 
         try:
             url = upload_video(

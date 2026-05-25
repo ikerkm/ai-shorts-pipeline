@@ -47,7 +47,8 @@ Devuelve exactamente este JSON:
       "video_prompt": "motion description in English for a 5s animated clip — MANDATORY: identify the main subject of this scene's image and describe what specific element moves (examples: ruins → 'dust particles slowly drifting through crumbling archway, gentle camera push-in'; soldiers → 'distant soldiers marching slowly, gradual zoom-out'; space → 'nebula clouds slowly expanding, stars drifting, subtle zoom-out'; person → 'hair gently moving in wind, slow push-in on face'). Always combine: specific subject motion + camera motion (slow zoom-in / gentle push-in / smooth pan / slow zoom-out). CRITICAL: use ONLY slow, smooth, gentle movements — NEVER 'intensifying', 'exploding', 'expanding rapidly', 'dramatic burst'. Always end with: 'consistent stable lighting, no light variation'. One sentence, cinematic and calm."
     }}
   ],
-  "outro": "llamada a la acción final (máx 10 palabras, ej: Sígueme para más)"
+  "outro": "llamada a la acción final (máx 10 palabras, ej: Sígueme para más)",
+  "tags": ["tag1especifico", "tag2", "tag3", "tag4", "tag5general"]
 }}
 
 Reglas críticas:
@@ -59,7 +60,8 @@ Reglas críticas:
 - video_prompt debe ser coherente con el tipo de escena (espacio: zoom-out lento + nebulosa pulsando; naturaleza: pan suave + hojas cayendo; personas: push-in lento + luz cambiando)
 - Estilo narrativo: directo, impactante, presente continuo
 - NO uses emojis ni símbolos especiales (@, #, *, &, %, ^, ~, |, <, >) en ningún campo
-- Usa español correcto con tildes y eñe (á, é, í, ó, ú, ñ, ü, Á, É, Í, Ó, Ú, Ñ) — son obligatorias"""
+- Usa español correcto con tildes y eñe (á, é, í, ó, ú, ñ, ü, Á, É, Í, Ó, Ú, Ñ) — son obligatorias
+- tags: 3-5 palabras clave del tema en minúsculas, sin espacios, sin # — del más específico del vídeo al más general"""
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
@@ -230,7 +232,8 @@ LÍMITE: ~{num_scenes * 18} palabras en total. Ortografía española perfecta: t
       "video_prompt": "slow zoom-in toward the product with gentle rotation, light catching the surface edge. consistent stable lighting, no light variation."
     }}
   ],
-  "outro": "condición de compra imposible, dicha con calma (máx 8 palabras)"
+  "outro": "condición de compra imposible, dicha con calma (máx 8 palabras)",
+  "tags": ["tag1producto", "tag2", "tag3", "tag4", "tag5general"]
 }}
 
 ESCENAS 3 A {num_scenes}:
@@ -241,6 +244,7 @@ ESCENAS 3 A {num_scenes}:
 - CTA image_prompt: "{visual_anchor}" centrado, luz lateral dramática, {visual_style}
 - Narración DISTINTA en cada escena, siempre avanzando la cadena
 - NO incluyas ™ ni ® en narración — solo en el title
+- tags: 3-5 palabras clave en minúsculas, sin espacios, sin # — específicas del producto absurdo y el humor
 - Ortografía española perfecta: tildes y ñ siempre"""
 
     response = client.messages.create(
@@ -328,11 +332,13 @@ Devuelve exactamente este JSON con {num_scenes} escenas completas:
       "video_prompt": "slow cinematic motion in English — one specific element moves gently (atmosphere swirling, ocean surface, clouds drifting). Camera: slow zoom-out / gentle push-in. consistent stable lighting, no light variation."
     }}
   ],
-  "outro": "pregunta o reflexión que deja al espectador pensando (máx 10 palabras)"
+  "outro": "pregunta o reflexión que deja al espectador pensando (máx 10 palabras)",
+  "tags": ["tag1especifico", "tag2", "tag3", "tag4", "tag5general"]
 }}
 
 LÍMITE TOTAL: máx {num_scenes * 20} palabras de narración en total.
 NO emojis ni símbolos (@, #, *, &, %) en ningún campo.
+tags: 3-5 palabras clave en minúsculas, sin espacios, sin # — específicas de la hipótesis y sus consecuencias.
 Ortografía española perfecta: tildes y ñ siempre (á, é, í, ó, ú, ñ)."""
 
     response = client.messages.create(

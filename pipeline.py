@@ -408,7 +408,7 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     print(f"  Tamano: {size_mb:.1f} MB")
     print(f"{'='*55}\n")
 
-    return final, actual_topic
+    return final, actual_topic, script.get("tags", [])
 
 
 def main():
@@ -436,9 +436,9 @@ def main():
     profile = load_account(args.account) if args.account else {}
     if args.ad_style:
         profile["ad_style_hint"] = args.ad_style
-    video_path, actual_topic = run(args.topic, style=args.style, num_scenes=args.scenes,
-                                   profile=profile, test_mode=args.test,
-                                   script_file=args.script_file, script_type=args.script_type)
+    video_path, actual_topic, _ = run(args.topic, style=args.style, num_scenes=args.scenes,
+                                      profile=profile, test_mode=args.test,
+                                      script_file=args.script_file, script_type=args.script_type)
     if actual_topic != args.topic:
         print(f"  Tema real usado: {actual_topic}")
 

@@ -49,15 +49,18 @@ def save_topic(account_name: str, topic: str):
     p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def save_run(account_name: str, topic: str, video_path: str, duration_s: float):
+def save_run(account_name: str, topic: str, video_path: str, duration_s: float, tags: list = None):
     p = _log_path(account_name)
     data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"topics": [], "runs": []}
-    data["runs"].append({
+    entry = {
         "date": datetime.now().isoformat(timespec="seconds"),
         "topic": topic,
         "video": str(video_path),
         "duration_s": round(duration_s, 1),
-    })
+    }
+    if tags:
+        entry["tags"] = tags
+    data["runs"].append(entry)
     p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -149,9 +152,9 @@ def run_account(account_name: str, n_videos: int):
 
         t0 = time.time()
         try:
-            video_path, actual_topic = run(topic, profile=profile)
+            video_path, actual_topic, video_tags = run(topic, profile=profile)
             elapsed = time.time() - t0
-            save_run(account_name, actual_topic, video_path, elapsed)
+            save_run(account_name, actual_topic, video_path, elapsed, tags=video_tags)
             print(f"  Completado en {elapsed/60:.1f} min → {video_path.name}")
         except Exception as e:
             elapsed = time.time() - t0
