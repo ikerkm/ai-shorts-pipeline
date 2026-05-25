@@ -43,3 +43,4 @@ $null
 
 # Scripts de prueba locales
 test_*.py
+scripts/

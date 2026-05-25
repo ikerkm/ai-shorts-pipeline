@@ -19,6 +19,7 @@ import anthropic
 sys.path.insert(0, str(Path(__file__).parent))
 from config import ANTHROPIC_API_KEY, ACCOUNTS_DIR, BASE_DIR, load_account
 from pipeline import run
+from script_batch_generator import count_pending, generate_batch, MIN_PENDING, TARGET_PENDING
 
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
@@ -115,6 +116,14 @@ def run_account(account_name: str, n_videos: int):
     print(f"  Vídeos a generar: {n_videos}  |  Temas usados: {len(used)}")
     print(f"{'='*55}")
 
+    # Rellenar cola de guiones si está baja (todas las cuentas)
+    account_key = profile.get("output_subdir", account_name)
+    pending = count_pending(account_key)
+    if pending < MIN_PENDING:
+        needed = TARGET_PENDING - pending
+        print(f"\n  [BATCH] Guiones en cola: {pending}. Generando {needed} mas con caching...")
+        generate_batch(account_name, count=needed)
+
     print(f"\nGenerando {n_videos} temas con Claude...")
     topics = generate_topics(profile, n_videos, used)
 
@@ -158,7 +167,11 @@ def main():
     args = parser.parse_args()
 
     if args.all:
-        accounts = [p.stem for p in sorted(ACCOUNTS_DIR.glob("*.json"))]
+        all_accounts = [p.stem for p in sorted(ACCOUNTS_DIR.glob("*.json"))]
+        accounts = [a for a in all_accounts if load_account(a).get("auto_schedule", True)]
+        skipped = [a for a in all_accounts if a not in accounts]
+        if skipped:
+            print(f"  [SKIP] Cuentas con auto_schedule=false: {skipped}")
         print(f"Procesando {len(accounts)} cuentas: {accounts}")
         for account in accounts:
             run_account(account, args.videos)

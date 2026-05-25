@@ -22,7 +22,7 @@ if sys.stderr.encoding != 'utf-8':
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 sys.path.insert(0, str(Path(__file__).parent))
-from config import TEMP_DIR, OUTPUT_DIR, FFMPEG, VIDEO_WIDTH, VIDEO_HEIGHT, load_account
+from config import BASE_DIR, TEMP_DIR, OUTPUT_DIR, FFMPEG, VIDEO_WIDTH, VIDEO_HEIGHT, load_account
 from modules.script_generator import generate_script, generate_ad_script
 from modules.product_generator import generate_product
 from modules.image_generator import generate_image
@@ -48,7 +48,8 @@ def _placeholder_image(output_path: Path, color: str = "0x0a0a1a"):
 
 
 def run(topic: str, style: str = None, num_scenes: int = None,
-        profile: dict = None, test_mode: bool = False) -> Path:
+        profile: dict = None, test_mode: bool = False,
+        script_file: Path = None) -> Path:
     p = profile or {}
 
     # Profile defaults, then function args, then hardcoded fallback
@@ -94,10 +95,33 @@ def run(topic: str, style: str = None, num_scenes: int = None,
 
     # ── 0. Producto (solo cuenta anuncios) ────────────────────
     product = None
+    cached_script = None
     ad_style_hint = p.get("ad_style_hint") or None
+    account_key = p.get("output_subdir", "")
     if p.get("account_type") == "anuncios":
-        print("\n[0/5] Generando concepto de producto...")
-        product = generate_product(topic, style_hint=ad_style_hint)
+        # --script-file: carga directa sin mover a processed (modo prueba)
+        if script_file:
+            cached_data   = json.loads(Path(script_file).read_text(encoding="utf-8"))
+            product       = cached_data["product"]
+            cached_script = cached_data["script"]
+            effective_scenes = len(cached_script["scenes"])
+            print(f"\n[0/5] Guion cargado (sin consumir): {Path(script_file).name}")
+        else:
+            # Intentar cargar desde cola pending (pre-generados por script_batch_generator)
+            pending_dir   = BASE_DIR / "scripts" / account_key / "pending"
+            processed_dir = BASE_DIR / "scripts" / account_key / "processed"
+            pending_files = sorted(pending_dir.glob("*.json")) if pending_dir.exists() else []
+            if pending_files:
+                cached_data   = json.loads(pending_files[0].read_text(encoding="utf-8"))
+                product       = cached_data["product"]
+                cached_script = cached_data["script"]
+                effective_scenes = len(cached_script["scenes"])
+                processed_dir.mkdir(parents=True, exist_ok=True)
+                pending_files[0].rename(processed_dir / pending_files[0].name)
+                print(f"\n[0/5] Guion cacheado: {pending_files[0].name}")
+            else:
+                print("\n[0/5] Generando concepto de producto...")
+                product = generate_product(topic, style_hint=ad_style_hint)
         # Overrides dinámicos basados en el brief del producto
         kokoro_speed = float(product.get("tts_speed", kokoro_speed))
         _style_to_preset = {
@@ -117,11 +141,27 @@ def run(topic: str, style: str = None, num_scenes: int = None,
         visual_style_prefix = ""  # los image_prompts del ad llevan su propio estilo
 
     # ── 1. Script ─────────────────────────────────────────────
-    print("\n[1/5] Generando guion con Claude Sonnet...")
-    if product:
+    if cached_script is not None:
+        # anuncios: guión cargado de pending/ en el paso 0
+        script = cached_script
+        print(f"\n[1/5] Guion cargado del cache")
+    elif product:
+        print("\n[1/5] Generando guion con Claude Opus...")
         script = generate_ad_script(product, effective_scenes)
     else:
-        script = generate_script(topic, effective_style, effective_scenes, system_prompt_extra)
+        # cuentas regulares: comprobar pending/ antes de llamar a Claude
+        _pending  = BASE_DIR / "scripts" / account_key / "pending"
+        _processed = BASE_DIR / "scripts" / account_key / "processed"
+        _pfiles   = sorted(_pending.glob("*.json")) if _pending.exists() else []
+        if _pfiles:
+            _data  = json.loads(_pfiles[0].read_text(encoding="utf-8"))
+            script = _data["script"]
+            _processed.mkdir(parents=True, exist_ok=True)
+            _pfiles[0].rename(_processed / _pfiles[0].name)
+            print(f"\n[1/5] Guion cargado del cache: {_pfiles[0].name}")
+        else:
+            print("\n[1/5] Generando guion con Claude Sonnet...")
+            script = generate_script(topic, effective_style, effective_scenes, system_prompt_extra)
     print(f"  Titulo : {script['title']}")
     print(f"  Escenas: {len(script['scenes'])}")
     (job_dir / "script.json").write_text(
@@ -288,13 +328,15 @@ def main():
     parser.add_argument("--ad-style", default=None,
                         choices=["ad_corporate", "ad_infomercial", "ad_luxury"],
                         help="Fuerza un estilo visual/musical para anuncios_absurdos")
+    parser.add_argument("--script-file", default=None,
+                        help="Ruta a un JSON de guion pre-generado; lo usa sin moverlo a processed/")
     args = parser.parse_args()
 
     profile = load_account(args.account) if args.account else {}
     if args.ad_style:
         profile["ad_style_hint"] = args.ad_style
     run(args.topic, style=args.style, num_scenes=args.scenes, profile=profile,
-        test_mode=args.test)
+        test_mode=args.test, script_file=args.script_file)
 
 
 if __name__ == "__main__":

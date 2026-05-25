@@ -108,7 +108,7 @@ GUIÓN DE REFERENCIA — este es el registro exacto que debes replicar:
   hook:             "Sigues usando champú como si tu pelo tuviera futuro."
   problem:          "Te estás lavando el pelo sin saber que hoy es el último día que lo usas."
   physical_demo:    "CalvoClean. Champú transparente. Te lo aplicas en la ducha como cualquier otro. El pelo empieza a caerse de forma perfectamente ordenada."
-  testimonial:      "Miguel lo usó pensando que era hidratante. Ahora peina su cuero cabelludo con orgullo y calendario."
+  testimonial:      "Lo usé pensando que era hidratante. Ahora peino mi cuero cabelludo con orgullo y calendario."
   social_reaction:  "En gimnasios de Valencia, los usuarios comparan brillos de cabeza como si fueran modelos de coche nuevo."
   absurd_protocol:  "Las peluquerías han cambiado el horario: primero te lavan, luego te despiden con dignidad."
   outro:            "Si lo entiendes tarde, ya es tarde."
@@ -184,9 +184,9 @@ Escenas 3 a {num_scenes-1} [social_reaction / testimonial]:
     BIEN: "Toda la plantilla lleva la oblea encima y las reuniones duran cuatro minutos, así que ahora convocan dos seguidas para rellenar el hueco."
     BIEN: "Desde que todos los socios llevan el parche, las máquinas están siempre libres y la cola más larga del gimnasio es la de la fuente de agua."
     MAL (telegráfico, no usar): "Todos llevan parche. Las máquinas vacías. La fuente tiene cola."
-  testimonial → nombre propio + mini-historia de 2 frases con ironía seca.
-    FÓRMULA: "[Nombre] lo [usó/compró] [pensando que era X]. Ahora [consecuencia absurda específica]."
-    Ejemplo: "Miguel lo usó pensando que era hidratante. Ahora peina su cuero cabelludo con orgullo y calendario."
+  testimonial → primera persona, 2 frases con ironía seca. La persona que habla ES el testimonio (voz diferente al narrador).
+    FÓRMULA: "Lo [usé/compré] pensando que era X. Ahora [consecuencia absurda específica en primera persona]."
+    Ejemplo: "Lo usé pensando que era hidratante. Ahora peino mi cuero cabelludo con orgullo y calendario."
     Si es testimonial: añade campo "voice" (masculinas: "em_santa"/"pm_santa", femeninas: "ef_dora"/"pf_dora").
 
 Escena {num_scenes} [absurd_protocol]: remate de una frase con punch. Puede ser institucional o cotidiano.

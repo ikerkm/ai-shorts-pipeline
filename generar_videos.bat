@@ -1,12 +1,19 @@
 @echo off
-title Pipeline Shorts - 2 videos x 3 cuentas = 6 videos
+title Pipeline Shorts - 2 videos x 4 cuentas = 8 videos
 chcp 65001 >nul
 
 echo.
 echo ================================================
 echo   PIPELINE SHORTS
-echo   2 videos x 3 cuentas = 6 videos en total
-echo   Tiempo estimado: 2-2.5 horas
+echo   2 videos x 4 cuentas = 8 videos en total
+echo   Tiempo estimado: 3-3.5 horas
+echo.
+echo   Orden: ciencia_espacial, misterio_historia,
+echo          datos_curiosos, anuncios_absurdos
+echo.
+echo   NOTA anuncios_absurdos: si hay menos de 3
+echo   guiones en cola, genera un batch de 10 antes
+echo   de lanzar los videos (con prompt caching).
 echo ================================================
 echo.
 
@@ -37,7 +44,7 @@ goto WAIT_LOOP
 :RUN_SCHEDULER
 echo.
 echo [2/2] Lanzando scheduler...
-echo       Orden: ciencia_espacial → misterio_historia → datos_curiosos
+echo       Orden: ciencia_espacial, misterio_historia, datos_curiosos, anuncios_absurdos
 echo.
 
 set PYTHONUTF8=1
@@ -50,6 +57,7 @@ echo   Videos en: Z:\AI\pipeline\output\
 echo   - ciencia_espacial\
 echo   - misterio_historia\
 echo   - datos_curiosos\
+echo   - anuncios_absurdos\
 echo ================================================
 echo.
 echo ================================================

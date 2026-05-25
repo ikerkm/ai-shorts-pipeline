@@ -146,6 +146,10 @@ async def _stream_tts(text: str, output_path: Path, voice: str, rate: str) -> li
 # ── Punto de entrada ─────────────────────────────────────────────────────────
 
 _TM_CHARS = str.maketrans({'™': '', '®': '', '©': '', '℠': ''})
+_RE_THOUSANDS = re.compile(r'\b(\d{1,3}(?:\.\d{3})+)\b')
+
+def _strip_thousand_dots(text: str) -> str:
+    return _RE_THOUSANDS.sub(lambda m: m.group(0).replace('.', ''), text)
 
 def generate_audio(text: str, output_path: Path,
                    voice: str = None, rate: str = None,
@@ -153,6 +157,8 @@ def generate_audio(text: str, output_path: Path,
                    kokoro_voice: str = None, kokoro_speed: float = 0.92) -> tuple[Path, list[dict]]:
     # Símbolos de marca se leen como "marca comercial" en TTS — eliminar
     text = text.translate(_TM_CHARS)
+    # Separadores de miles españoles (4.000 → 4000) para evitar "cuatro punto cero cero cero"
+    text = _strip_thousand_dots(text)
     # 1. ElevenLabs (máxima calidad, requiere API key)
     el_key = os.getenv('ELEVENLABS_API_KEY', '').strip()
     if el_key and elevenlabs_voice_id:

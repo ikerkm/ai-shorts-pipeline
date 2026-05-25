@@ -1,5 +1,6 @@
 {
   "name": "anuncios_absurdos",
+  "auto_schedule": false,
   "display_name": "Anuncios Absurdos",
   "account_type": "anuncios",
   "tts_voice": "es-ES-AlvaroNeural",
