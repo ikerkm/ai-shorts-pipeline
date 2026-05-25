@@ -124,6 +124,14 @@ def run_account(account_name: str, n_videos: int):
         print(f"\n  [BATCH] Guiones en cola: {pending}. Generando {needed} mas con caching...")
         generate_batch(account_name, count=needed)
 
+    # Rellenar cola what_if si la cuenta tiene ratio > 0
+    if float(profile.get("what_if_ratio", 0)) > 0:
+        pending_wi = count_pending(account_key, script_type="what_if")
+        if pending_wi < MIN_PENDING:
+            needed_wi = TARGET_PENDING - pending_wi
+            print(f"\n  [BATCH what_if] Guiones en cola: {pending_wi}. Generando {needed_wi}...")
+            generate_batch(account_name, count=needed_wi, script_type="what_if")
+
     print(f"\nGenerando {n_videos} temas con Claude...")
     topics = generate_topics(profile, n_videos, used)
 

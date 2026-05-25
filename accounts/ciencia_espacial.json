@@ -1,5 +1,6 @@
 {
   "name": "ciencia_espacial",
+  "what_if_ratio": 0.2,
   "display_name": "Ciencia Espacial",
   "tts_voice": "es-ES-AlvaroNeural",
   "tts_rate": "+0%",

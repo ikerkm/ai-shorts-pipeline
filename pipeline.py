@@ -170,23 +170,41 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     elif product:
         print("\n[1/5] Generando guion con Claude Opus...")
         script = generate_ad_script(product, effective_scenes)
-    elif script_type == "what_if":
-        print("\n[1/5] Generando guion hipotetico (what_if) con Claude Sonnet...")
-        script = generate_what_if_script(topic, effective_scenes)
     else:
-        # cuentas regulares: comprobar pending/ antes de llamar a Claude
-        _pending  = BASE_DIR / "scripts" / account_key / "pending"
-        _processed = BASE_DIR / "scripts" / account_key / "processed"
-        _pfiles   = sorted(_pending.glob("*.json")) if _pending.exists() else []
-        if _pfiles:
-            _data  = json.loads(_pfiles[0].read_text(encoding="utf-8"))
-            script = _data["script"]
-            _processed.mkdir(parents=True, exist_ok=True)
-            _pfiles[0].rename(_processed / _pfiles[0].name)
-            print(f"\n[1/5] Guion cargado del cache: {_pfiles[0].name}")
+        # Auto-selección what_if según ratio del perfil (ej: 20% para ciencia_espacial)
+        if script_type is None:
+            what_if_ratio = float(p.get("what_if_ratio", 0))
+            if what_if_ratio > 0 and random.random() < what_if_ratio:
+                script_type = "what_if"
+
+        if script_type == "what_if":
+            # Cola what_if separada: scripts/{cuenta}/what_if/pending/
+            _pending   = BASE_DIR / "scripts" / account_key / "what_if" / "pending"
+            _processed = BASE_DIR / "scripts" / account_key / "what_if" / "processed"
+            _pfiles    = sorted(_pending.glob("*.json")) if _pending.exists() else []
+            if _pfiles:
+                _data  = json.loads(_pfiles[0].read_text(encoding="utf-8"))
+                script = _data["script"]
+                _processed.mkdir(parents=True, exist_ok=True)
+                _pfiles[0].rename(_processed / _pfiles[0].name)
+                print(f"\n[1/5] Guion what_if cargado del cache: {_pfiles[0].name}")
+            else:
+                print("\n[1/5] Generando guion hipotetico (what_if) con Claude Sonnet...")
+                script = generate_what_if_script(topic, effective_scenes)
         else:
-            print("\n[1/5] Generando guion con Claude Sonnet...")
-            script = generate_script(topic, effective_style, effective_scenes, system_prompt_extra)
+            # cuentas regulares: comprobar pending/ antes de llamar a Claude
+            _pending  = BASE_DIR / "scripts" / account_key / "pending"
+            _processed = BASE_DIR / "scripts" / account_key / "processed"
+            _pfiles   = sorted(_pending.glob("*.json")) if _pending.exists() else []
+            if _pfiles:
+                _data  = json.loads(_pfiles[0].read_text(encoding="utf-8"))
+                script = _data["script"]
+                _processed.mkdir(parents=True, exist_ok=True)
+                _pfiles[0].rename(_processed / _pfiles[0].name)
+                print(f"\n[1/5] Guion cargado del cache: {_pfiles[0].name}")
+            else:
+                print("\n[1/5] Generando guion con Claude Sonnet...")
+                script = generate_script(topic, effective_style, effective_scenes, system_prompt_extra)
     print(f"  Titulo : {script['title']}")
     print(f"  Escenas: {len(script['scenes'])}")
     (job_dir / "script.json").write_text(

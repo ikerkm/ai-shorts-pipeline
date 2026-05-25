@@ -24,7 +24,7 @@ import anthropic
 sys.path.insert(0, str(Path(__file__).parent))
 from config import ANTHROPIC_API_KEY, BASE_DIR, ACCOUNTS_DIR, load_account
 from modules.product_generator import generate_product
-from modules.script_generator import generate_script, generate_ad_script
+from modules.script_generator import generate_script, generate_ad_script, generate_what_if_script
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -35,13 +35,19 @@ TARGET_PENDING = 10
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def count_pending(account_name: str) -> int:
-    d = SCRIPTS_DIR / account_name / "pending"
+def count_pending(account_name: str, script_type: str = None) -> int:
+    if script_type == "what_if":
+        d = SCRIPTS_DIR / account_name / "what_if" / "pending"
+    else:
+        d = SCRIPTS_DIR / account_name / "pending"
     return len(list(d.glob("*.json"))) if d.exists() else 0
 
 
-def _pending_dir(account_name: str) -> Path:
-    d = SCRIPTS_DIR / account_name / "pending"
+def _pending_dir(account_name: str, script_type: str = None) -> Path:
+    if script_type == "what_if":
+        d = SCRIPTS_DIR / account_name / "what_if" / "pending"
+    else:
+        d = SCRIPTS_DIR / account_name / "pending"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -192,14 +198,81 @@ def _generate_batch_ads(account_name: str, profile: dict, count: int, style_hint
     return generated
 
 
+def _generate_topics_what_if(n: int, used_topics: set) -> list[str]:
+    """Genera N hipótesis 'Y si...' variadas para ciencia_espacial."""
+    used_str = ""
+    if used_topics:
+        sample = list(used_topics)[-20:]
+        used_str = "\n\nHipótesis ya usadas (NO repetir ni similares):\n" + "\n".join(f"- {t}" for t in sample)
+
+    response = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=500,
+        messages=[{"role": "user", "content": (
+            f"Genera exactamente {n} hipótesis científicas del tipo 'Y si...' aplicadas a la Tierra "
+            "para vídeos de divulgación científica en TikTok/Shorts. "
+            "Cubre variedad: condiciones de otros planetas, configuración del sistema solar, "
+            "cambios en la Luna/Sol, eje terrestre, campo magnético, etc. "
+            "Cada hipótesis debe tener consecuencias concretas y visualizables.{used_str}\n\n"
+            f'Responde SOLO con JSON: {{"topics": ["Y si ...", "Y si ...", ...]}} '
+            "Máx 70 chars por hipótesis. Sin emojis. Español con tildes y ñ."
+        ).format(used_str=used_str)}]
+    )
+    text = response.content[0].text.strip()
+    if "```" in text:
+        text = text.split("```")[1]
+        if text.startswith("json"):
+            text = text[4:]
+        text = text.strip()
+    topics = json.loads(text)["topics"]
+    return [t for t in topics if t not in used_topics][:n]
+
+
+def _generate_batch_what_if(account_name: str, profile: dict, count: int) -> int:
+    """Guiones hipotéticos what_if para cuentas con what_if_ratio > 0."""
+    pending_dir = _pending_dir(account_name, script_type="what_if")
+    num_scenes  = profile.get("default_scenes", 6)
+
+    used   = _load_used_topics(f"{account_name}_what_if")
+    topics = _generate_topics_what_if(count, used)
+    print(f"  Hipótesis: {len(topics)}")
+    for i, t in enumerate(topics, 1):
+        print(f"    {i}. {t}")
+
+    generated = 0
+    for i, topic in enumerate(topics, 1):
+        print(f"\n[{i}/{len(topics)}] {topic}")
+        try:
+            t0     = time.time()
+            script = generate_what_if_script(topic, num_scenes)
+            fname  = _save_json(pending_dir, i, topic, {
+                "topic": topic, "account": account_name, "script_type": "what_if",
+                "num_scenes": num_scenes, "script": script,
+                "generated_at": datetime.now().isoformat(timespec="seconds"),
+            })
+            print(f"  OK ({time.time()-t0:.1f}s) → {fname}")
+            generated += 1
+        except Exception as e:
+            print(f"  [ERROR] {e}")
+        if i < len(topics):
+            time.sleep(2)
+
+    print(f"\n  {generated}/{count} guiones what_if en {pending_dir}")
+    return generated
+
+
 # ── API pública ───────────────────────────────────────────────────────────────
 
-def generate_batch(account_name: str, count: int = TARGET_PENDING, style_hint: str = None) -> int:
+def generate_batch(account_name: str, count: int = TARGET_PENDING,
+                   style_hint: str = None, script_type: str = None) -> int:
     profile = load_account(account_name)
+    label   = f"what_if" if script_type == "what_if" else "guiones"
     print(f"\n{'='*55}")
-    print(f"  BATCH: {profile['display_name']}  ({count} guiones)")
+    print(f"  BATCH: {profile['display_name']}  ({count} {label})")
     print(f"{'='*55}")
-    if profile.get("account_type") == "anuncios":
+    if script_type == "what_if":
+        return _generate_batch_what_if(account_name, profile, count)
+    elif profile.get("account_type") == "anuncios":
         return _generate_batch_ads(account_name, profile, count, style_hint)
     else:
         return _generate_batch_regular(account_name, profile, count)
@@ -215,15 +288,17 @@ def main():
     parser.add_argument("--style", default=None,
                         choices=["ad_corporate", "ad_infomercial", "ad_luxury"],
                         help="Fuerza estilo (solo para anuncios_absurdos)")
+    parser.add_argument("--type", default=None, choices=["what_if"],
+                        help="Tipo de guión especial (what_if: hipótesis aplicadas a la Tierra)")
     args = parser.parse_args()
 
     if args.all:
         accounts = [p.stem for p in sorted(ACCOUNTS_DIR.glob("*.json"))]
         print(f"Procesando {len(accounts)} cuentas: {accounts}")
         for account in accounts:
-            generate_batch(account, args.count, style_hint=args.style)
+            generate_batch(account, args.count, style_hint=args.style, script_type=args.type)
     else:
-        generate_batch(args.account, args.count, style_hint=args.style)
+        generate_batch(args.account, args.count, style_hint=args.style, script_type=args.type)
 
 
 if __name__ == "__main__":
