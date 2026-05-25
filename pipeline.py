@@ -100,10 +100,7 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     output_dir.mkdir(parents=True, exist_ok=True)
 
     actual_topic = topic  # puede cambiar si se carga un guión del pending
-    safe_topic = "".join(c if c.isascii() and (c.isalnum() or c == '_') else '_' for c in topic[:25].replace(' ', '_'))
-    job_id = f"{int(time.time())}_{safe_topic}"
-    job_dir = TEMP_DIR / job_id
-    job_dir.mkdir(parents=True)
+    _job_ts = int(time.time())  # fijamos timestamp ahora; job_id se crea tras conocer actual_topic
 
     print(f"\n{'='*55}")
     print(f"  PIPELINE SHORTS: {topic}")
@@ -209,6 +206,13 @@ def run(topic: str, style: str = None, num_scenes: int = None,
             else:
                 print("\n[1/5] Generando guion con Claude Sonnet...")
                 script = generate_script(topic, effective_style, effective_scenes, system_prompt_extra)
+    safe_topic = "".join(c if c.isascii() and (c.isalnum() or c == '_') else '_' for c in actual_topic[:25].replace(' ', '_'))
+    job_id = f"{_job_ts}_{safe_topic}"
+    job_dir = TEMP_DIR / job_id
+    job_dir.mkdir(parents=True)
+
+    if actual_topic != topic:
+        print(f"  Tema   : {actual_topic}")
     print(f"  Titulo : {script['title']}")
     print(f"  Escenas: {len(script['scenes'])}")
     (job_dir / "script.json").write_text(
