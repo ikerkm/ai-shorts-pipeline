@@ -2,7 +2,18 @@
 
 Pipeline automatizado de generación de vídeos cortos (Shorts/TikToks) con IA local.
 
-**Stack:** Claude API → Flux.1 Dev (imágenes) → Wan 2.2 I2V (vídeo) → Kokoro TTS → FFmpeg
+**Stack:** Claude API → Flux.1 Dev (imágenes) → Wan 2.2 I2V (vídeo) → Kokoro TTS → FFmpeg · ChromaDB + embeddings para los temas
+
+> Proyecto personal.
+
+## Qué hace
+
+- **De un tema a un Short publicado:** guion JSON con la API de Claude, imágenes, clips de vídeo, voz, subtítulos, música y montaje, todo en local.
+- **Temas sin repetir:** cada tema nuevo se compara por significado con los ya hechos, con embeddings multilingües (`paraphrase-multilingual-MiniLM-L12-v2`) en una base vectorial ChromaDB (`modules/topic_store.py`).
+- **Fotos reales cuando existen:** la cuenta de espacio busca primero una foto de dominio público en la NASA Image Library y solo genera con Flux si no hay una adecuada (`modules/stock_fetcher.py`).
+- **Retención:** gancho visual en el primer fotograma, subtítulos con la palabra activa resaltada y tarjeta de suscripción al final sin romper el bucle del Short.
+- **Voz natural:** los números se pasan a palabras antes del TTS.
+- **Publicación y métricas:** subida programada a YouTube declarando el contenido como sintético, registro de errores, snapshot horario de vistas y likes (`monitor_views.py`) y un compilatorio semanal en formato largo a partir de los vídeos de la semana (`weekly_compilation.py`).
 
 ## Requisitos de hardware
 
@@ -68,6 +79,10 @@ pipeline/
 ├── pipeline.py              # Orquestador principal
 ├── config.py                # Configuración centralizada
 ├── scheduler.py             # Scheduler automático
+├── script_batch_generator.py# Cola de guiones por adelantado
+├── upload_youtube.py        # Subida de los vídeos pendientes
+├── weekly_compilation.py    # Compilatorio semanal (formato largo)
+├── monitor_views.py         # Snapshot horario de vistas y likes
 ├── music_generator.py       # Genera 15 tracks ambient
 ├── install.ps1              # Setup desde cero
 ├── models_manifest.json     # Lista de modelos + fuentes HuggingFace
@@ -76,11 +91,14 @@ pipeline/
 ├── accounts/                # Perfiles por cuenta (JSON)
 ├── modules/
 │   ├── script_generator.py  # Claude API → guión JSON
+│   ├── topic_store.py       # Deduplicación semántica de temas (ChromaDB)
+│   ├── stock_fetcher.py     # Fotos reales de la NASA (dominio público)
 │   ├── image_generator.py   # ComfyUI Flux → imágenes
 │   ├── video_generator.py   # ComfyUI Wan 2.2 → clips
 │   ├── tts_generator.py     # Kokoro TTS → audio
 │   ├── subtitle_generator.py# Subtítulos ASS
-│   └── video_assembler.py   # FFmpeg → MP4 final
+│   ├── video_assembler.py   # FFmpeg → MP4 final + tarjeta de suscripción
+│   └── youtube_uploader.py  # YouTube Data API
 └── comfyui_workflows/       # Workflows ComfyUI exportados (JSON)
 ```
 
