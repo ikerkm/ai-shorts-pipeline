@@ -25,6 +25,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config import ANTHROPIC_API_KEY, BASE_DIR, ACCOUNTS_DIR, load_account
 from modules.product_generator import generate_product
 from modules.script_generator import generate_script, generate_ad_script, generate_what_if_script
+from modules.topic_store import add_topic as _ts_add, is_duplicate as _ts_is_dup
+from modules.topic_store import migrate_from_list as _ts_migrate, count as _ts_count
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -60,13 +62,17 @@ def _load_used_topics(account_name: str) -> set:
     return set(data.get("topics", []))
 
 
-def _save_json(pending_dir: Path, i: int, topic: str, payload: dict) -> str:
+def _save_json(pending_dir: Path, i: int, topic: str, payload: dict,
+               account_name: str = None) -> str:
     ts   = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe = "".join(c if c.isalnum() or c == "_" else "_" for c in topic[:25].replace(" ", "_"))
     fname = f"{ts}_{i:02d}_{safe}.json"
     (pending_dir / fname).write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+    # Track pending topic in ChromaDB so future batches don't generate duplicates
+    if account_name:
+        _ts_add(account_name, topic)
     return fname
 
 
@@ -77,19 +83,32 @@ def _generate_topics_regular(profile: dict, n: int, used_topics: set) -> list[st
     style        = profile.get("default_style", "informativo")
     extra        = profile.get("system_prompt_extra", "")
 
+    # Auto-migrate to ChromaDB on first use
+    if _ts_count(account_name) == 0 and used_topics:
+        added = _ts_migrate(account_name, list(used_topics))
+        print(f"  [TopicStore] Migrados {added} topics a ChromaDB")
+
     used_str = ""
     if used_topics:
-        sample   = list(used_topics)[-30:]
-        used_str = "\n\nTemas ya usados (NO repetir ni temas similares):\n" + "\n".join(f"- {t}" for t in sample)
+        used_str = "\n\nTemas ya usados (NO repetir ni el mismo concepto con distinta formulación):\n" + \
+                   "\n".join(f"- {t}" for t in sorted(used_topics))
+
+    # Sesgo data-driven hacia los arquetipos que más rinden (campo opcional del perfil).
+    patterns_str = ""
+    if profile.get("topic_patterns"):
+        patterns_str = (
+            "\n\nLO QUE MÁS FUNCIONA EN ESTE CANAL (sesga ~70% de los temas hacia estos arquetipos, "
+            "deja el ~30% restante para explorar variedad):\n" + profile["topic_patterns"]
+        )
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=500,
+        max_tokens=800,
         messages=[{"role": "user", "content": (
             f'Eres el editor de contenido de la cuenta de TikTok/Shorts "{account_name}" (estilo: {style}).\n'
             f"Contexto de la cuenta: {extra}\n\n"
-            f"Genera exactamente {n} temas frescos y virales para vídeos cortos de ~50 segundos.\n"
-            f"Cada tema debe ser concreto, específico y diferente de los demás.{used_str}\n\n"
+            f"Genera exactamente {n * 2} temas frescos y virales para vídeos cortos de ~50 segundos.\n"
+            f"Genera el doble de los necesarios para compensar posibles descartes por similitud.{patterns_str}{used_str}\n\n"
             f'Responde SOLO con JSON: {{"topics": ["tema 1", "tema 2", ...]}}\n'
             "Reglas:\n"
             "- Máx 60 caracteres por tema\n"
@@ -104,8 +123,20 @@ def _generate_topics_regular(profile: dict, n: int, used_topics: set) -> list[st
         if text.startswith("json"):
             text = text[4:]
         text = text.strip()
-    topics = json.loads(text)["topics"]
-    return [t for t in topics if t not in used_topics][:n]
+    candidates = json.loads(text)["topics"]
+
+    result = []
+    for t in candidates:
+        if t in used_topics:
+            continue
+        is_dup, closest, sim = _ts_is_dup(account_name, t)
+        if is_dup:
+            print(f"  [TopicStore] Rechazado '{t[:50]}' (sim={sim:.2f} con '{closest[:50]}')")
+            continue
+        result.append(t)
+        if len(result) == n:
+            break
+    return result
 
 
 def _generate_topics_ads(n: int) -> list[str]:
@@ -153,7 +184,7 @@ def _generate_batch_regular(account_name: str, profile: dict, count: int) -> int
             fname  = _save_json(pending_dir, i, topic, {
                 "topic": topic, "account": account_name, "num_scenes": num_scenes,
                 "script": script, "generated_at": datetime.now().isoformat(timespec="seconds"),
-            })
+            }, account_name=account_name)
             print(f"  OK ({time.time()-t0:.1f}s) → {fname}")
             generated += 1
         except Exception as e:
@@ -198,19 +229,26 @@ def _generate_batch_ads(account_name: str, profile: dict, count: int, style_hint
     return generated
 
 
-def _generate_topics_what_if(n: int, used_topics: set) -> list[str]:
+def _generate_topics_what_if(n: int, used_topics: set, account_name: str = "ciencia_espacial") -> list[str]:
     """Genera N hipótesis 'Y si...' variadas para ciencia_espacial."""
+    collection_name = f"{account_name}_what_if"
+
+    if _ts_count(collection_name) == 0 and used_topics:
+        added = _ts_migrate(collection_name, list(used_topics))
+        print(f"  [TopicStore] Migrados {added} hipótesis a ChromaDB")
+
     used_str = ""
     if used_topics:
-        sample = list(used_topics)[-20:]
-        used_str = "\n\nHipótesis ya usadas (NO repetir ni similares):\n" + "\n".join(f"- {t}" for t in sample)
+        used_str = "\n\nHipótesis ya usadas (NO repetir ni el mismo concepto):\n" + \
+                   "\n".join(f"- {t}" for t in sorted(used_topics))
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=500,
+        max_tokens=800,
         messages=[{"role": "user", "content": (
-            f"Genera exactamente {n} hipótesis científicas del tipo 'Y si...' aplicadas a la Tierra "
+            f"Genera exactamente {n * 2} hipótesis científicas del tipo 'Y si...' aplicadas a la Tierra "
             "para vídeos de divulgación científica en TikTok/Shorts. "
+            "Genera el doble de las necesarias para compensar posibles descartes por similitud. "
             "Cubre variedad: condiciones de otros planetas, configuración del sistema solar, "
             "cambios en la Luna/Sol, eje terrestre, campo magnético, etc. "
             f"Cada hipótesis debe tener consecuencias concretas y visualizables.{used_str}\n\n"
@@ -224,8 +262,20 @@ def _generate_topics_what_if(n: int, used_topics: set) -> list[str]:
         if text.startswith("json"):
             text = text[4:]
         text = text.strip()
-    topics = json.loads(text)["topics"]
-    return [t for t in topics if t not in used_topics][:n]
+    candidates = json.loads(text)["topics"]
+
+    result = []
+    for t in candidates:
+        if t in used_topics:
+            continue
+        is_dup, closest, sim = _ts_is_dup(collection_name, t)
+        if is_dup:
+            print(f"  [TopicStore] Rechazado '{t[:50]}' (sim={sim:.2f} con '{closest[:50]}')")
+            continue
+        result.append(t)
+        if len(result) == n:
+            break
+    return result
 
 
 def _generate_batch_what_if(account_name: str, profile: dict, count: int) -> int:
@@ -234,7 +284,7 @@ def _generate_batch_what_if(account_name: str, profile: dict, count: int) -> int
     num_scenes  = profile.get("default_scenes", 6)
 
     used   = _load_used_topics(f"{account_name}_what_if")
-    topics = _generate_topics_what_if(count, used)
+    topics = _generate_topics_what_if(count, used, account_name=account_name)
     print(f"  Hipótesis: {len(topics)}")
     for i, t in enumerate(topics, 1):
         print(f"    {i}. {t}")
@@ -249,7 +299,7 @@ def _generate_batch_what_if(account_name: str, profile: dict, count: int) -> int
                 "topic": topic, "account": account_name, "script_type": "what_if",
                 "num_scenes": num_scenes, "script": script,
                 "generated_at": datetime.now().isoformat(timespec="seconds"),
-            })
+            }, account_name=f"{account_name}_what_if")
             print(f"  OK ({time.time()-t0:.1f}s) → {fname}")
             generated += 1
         except Exception as e:

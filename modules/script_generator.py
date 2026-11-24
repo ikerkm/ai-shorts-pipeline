@@ -16,11 +16,24 @@ INCORRECTO: tambien, fisicos, anos, cancion, corazon, despues, mas, que, como, q
 Si omites una tilde, una ñ o una ü, el resultado es inaceptable.
 
 PRINCIPIOS DE GUIÓN VIRAL:
-- El hook (escena 1) debe generar una pregunta implícita en la mente del espectador que solo se resuelve viendo el resto
 - Cada escena debe terminar con el espectador queriendo saber qué viene después
 - Los datos concretos (números, fechas, nombres, lugares) siempre superan a las afirmaciones vagas
-- Frases cortas. Ritmo rápido. Presente continuo. Máx 20 palabras por frase.
+- Frases cortas. Ritmo rápido. Presente continuo. Máx 15 palabras por frase.
 - Nunca uses "increíble", "fascinante" o "interesante" — demuéstralo con el dato, no lo etiquetes
+
+HOOK — REGLA CRÍTICA (escena 1):
+- Suelta el dato MÁS impactante en la PRIMERA frase, sin preámbulo ni montaje conceptual. El shock es la frase 1, no la conclusión a la que llegas.
+- Framing personal siempre que se pueda: conecta el dato con el cuerpo, la ventana, el cielo de esta noche o la vida diaria del espectador ("tú", "ahora mismo", "esta noche"). Lo personal gana a lo abstracto.
+- ANTES de escribir, identifica la frase MÁS provocadora de todo el guión. Esa frase va en la escena 1. NUNCA enterrada en la escena final.
+- Constatación concreta, no concepto que el espectador tenga que descifrar.
+- PROCESO EN VIVO (el patrón que más rinde CUANDO EL TEMA LO PERMITE): si el hecho está ocurriendo o puede observarse en el presente, preséntalo como algo que está PASANDO AHORA y que estamos PRESENCIANDO, no como un dato de enciclopedia. Palabras gatillo: "ahora mismo", "ante nosotros", "mientras lees esto", "se está [desintegrando/acercando/tragando] en este momento". Un fenómeno en movimiento que el espectador "pilla en directo" retiene mucho más. (Si el tema es histórico o del pasado, NO lo fuerces a presente: usa el shock concreto en su tiempo natural.)
+BIEN: "Una galaxia está disparando un chorro de plasma a 6.000 años luz. Ahora mismo, sin que nadie lo vea." (proceso en vivo — fue el vídeo nº1 del canal)
+BIEN: "La luna de Marte se está desintegrando en anillos ante nosotros." (proceso en vivo + presente)
+BIEN: "Existe un agujero negro que se traga un Sol entero cada segundo."
+BIEN: "La luz que entra esta noche por tu ventana viene de estrellas muertas hace 20.000 años."
+MAL:  "Estás mirando el pasado sin saberlo. Una estrella lleva 20.000 años muerta." (concepto antes que shock)
+MAL:  "La luna Fobos tiene una órbita decreciente." (dato estático de enciclopedia, sin "en directo")
+MAL:  "Hoy vamos a hablar de un fenómeno fascinante." (etiqueta, sin dato)
 
 Respondes ÚNICAMENTE con JSON válido, sin markdown ni explicaciones."""
 
@@ -41,8 +54,9 @@ Devuelve exactamente este JSON:
   "scenes": [
     {{
       "id": 1,
-      "narration": "texto que se narrará, natural y conversacional (máx 20 palabras)",
+      "narration": "texto que se narrará, natural y conversacional (entre 15 y 20 palabras)",
       "image_prompt": "vivid cinematic scene in English — MANDATORY: derive the visual subject DIRECTLY from the narration text of this scene (identify who/what/where/when is being described and translate it into a concrete visual scene) + [natural balanced lighting: soft overcast daylight / golden hour side light / cool blue twilight / dim studio with shadows — properly exposed with visible detail in both highlights and shadows, NOT blown out or overexposed] + [camera angle: aerial view / extreme close-up / wide establishing shot / medium shot] + [atmosphere and colors: rich saturated colors, good contrast, cinematic tones]. If people: show clear face and natural proportions. NO silhouettes as main subject. NO generic topic-level scenes — the image must illustrate THIS specific narration sentence.",
+      "stock_query": "search query in ENGLISH for the NASA image archive, targeting a REAL object + mission (examples: 'Jupiter Great Red Spot', 'Europa moon Galileo', 'Pillars of Creation Webb', 'Mars surface Perseverance', 'Andromeda galaxy', 'Saturn rings Cassini'). Leave \"\" (empty string) if this scene is hypothetical, abstract, future, or has no possible real photo (e.g. 'what if the Moon vanished', emotions, concepts).",
       "image_negative": "blurry, low quality, text, watermark, logo, distorted, deformed, bad anatomy, extra limbs, malformed hands, fused fingers, cloned faces, amateur, overexposed, blown out, washed out, too bright, white haze, burnt highlights, murky, muddy colors, silhouette, black background, noise, pixelated, oversaturated",
       "video_prompt": "motion description in English for a 5s animated clip — MANDATORY: identify the main subject of this scene's image and describe what specific element moves (examples: ruins → 'dust particles slowly drifting through crumbling archway, gentle camera push-in'; soldiers → 'distant soldiers marching slowly, gradual zoom-out'; space → 'nebula clouds slowly expanding, stars drifting, subtle zoom-out'; person → 'hair gently moving in wind, slow push-in on face'). Always combine: specific subject motion + camera motion (slow zoom-in / gentle push-in / smooth pan / slow zoom-out). CRITICAL: use ONLY slow, smooth, gentle movements — NEVER 'intensifying', 'exploding', 'expanding rapidly', 'dramatic burst'. Always end with: 'consistent stable lighting, no light variation'. One sentence, cinematic and calm."
     }}
@@ -52,10 +66,13 @@ Devuelve exactamente este JSON:
 }}
 
 Reglas críticas:
-- Narración total: máx 120 palabras en total para que el vídeo dure ~50 segundos
+- Narración total: entre 90 y 105 palabras en total para que el vídeo dure 33-38 segundos
 - La escena 1 usa el hook como narración
+- La escena 1 contiene la frase MÁS fuerte de todo el guión. Antes de escribir, decide cuál es el dato más impactante del tema y colócalo en la escena 1, nunca en la última
+- La escena final NO guarda ni repite el mejor dato: cierra con una pregunta abierta y personal que invite al espectador a comentar (los comentarios empujan el algoritmo). Ej: "¿Cuántas estrellas muertas iluminan tu ventana ahora mismo?"
 - image_prompt siempre en inglés, muy descriptivo y visual, SIEMPRE bien iluminado
 - image_prompt debe representar visualmente EXACTAMENTE lo que se narra en esa escena: el sujeto, la acción, el lugar y la época descritos en la narración. NO uses sujetos genéricos del tema; traduce la narración a descripción visual concreta. EJEMPLO CORRECTO: narración "El Imperio Romano cayó en el 476 d.C." → image_prompt "Odoacro deposes Romulus Augustulus in crumbling Roman throne room, barbarian soldiers, golden hour twilight, wide shot". EJEMPLO INCORRECTO: "Roman colosseum at sunset" (genérico del tema, no de la narración)
+- stock_query: SOLO para objetos/fenómenos reales fotografiados (planetas, lunas, galaxias, nebulosas, superficies, misiones). Nombra el objeto y, si ayuda, la misión real (Juno, Webb/JWST, Hubble, Voyager, Perseverance, Magellan, Cassini, Galileo). Déjalo "" (vacío) si la escena es hipotética, abstracta o no existe foto real (entonces se generará con IA)
 - video_prompt: describe solo el movimiento cinematico, NUNCA la descripción estática
 - video_prompt debe ser coherente con el tipo de escena (espacio: zoom-out lento + nebulosa pulsando; naturaleza: pan suave + hojas cayendo; personas: push-in lento + luz cambiando)
 - Estilo narrativo: directo, impactante, presente continuo
@@ -305,11 +322,11 @@ Respondes ÚNICAMENTE con JSON válido, sin markdown ni explicaciones."""
 Número de escenas: {num_scenes}
 
 ESTRUCTURA OBLIGATORIA:
-- Escena 1 [hook]: La condición ya está activa. Elige el efecto que más se siente en el cuerpo o en la rutina diaria — no mareas, no geología, no fenómenos marinos. Dato numérico concreto + consecuencia personal inmediata. Constatación, no pregunta. Máx 18 palabras.
-- Escena 2 [fisica]: El cambio físico fundamental con números reales comparados con algo cotidiano. Máx 20 palabras.
-- Escenas 3-{num_scenes - 2} [cascada]: Consecuencias en cadena — cada una deriva directamente de la anterior. Mezcla física, clima, geología, biología según la hipótesis. Máx 20 palabras cada una.
-- Escena {num_scenes - 1} [humanos]: Qué le ocurre concretamente a la vida o la civilización humana. Específico, no genérico. Máx 20 palabras.
-- Escena {num_scenes} [remate]: Giro final. Puede ser: "esto ya ocurre en el planeta X", "la única razón por la que no pasa es Y", "en realidad la Tierra rozó esta condición hace Z millones de años". Máx 20 palabras.
+- Escena 1 [hook]: La condición ya está activa. Elige el efecto que más se siente en el cuerpo o en la rutina diaria — no mareas, no geología, no fenómenos marinos. Dato numérico concreto + consecuencia personal inmediata. Constatación, no pregunta. Entre 14 y 18 palabras.
+- Escena 2 [fisica]: El cambio físico fundamental con números reales comparados con algo cotidiano. Entre 15 y 20 palabras.
+- Escenas 3-{num_scenes - 2} [cascada]: Consecuencias en cadena — cada una deriva directamente de la anterior. Mezcla física, clima, geología, biología según la hipótesis. Entre 15 y 20 palabras cada una.
+- Escena {num_scenes - 1} [humanos]: Qué le ocurre concretamente a la vida o la civilización humana. Específico, no genérico. Entre 15 y 20 palabras.
+- Escena {num_scenes} [remate]: Giro final. Puede ser: "esto ya ocurre en el planeta X", "la única razón por la que no pasa es Y", "en realidad la Tierra rozó esta condición hace Z millones de años". Entre 15 y 20 palabras.
 
 IMAGEN — REGLA CRÍTICA:
 Cada imagen muestra la Tierra o la superficie terrestre bajo la condición alterada. Opciones:
@@ -326,7 +343,7 @@ Devuelve exactamente este JSON con {num_scenes} escenas completas:
     {{
       "id": 1,
       "scene_type": "hook",
-      "narration": "presente continuo, concreto, impactante (máx 18 palabras)",
+      "narration": "presente continuo, concreto, impactante (máx 14 palabras)",
       "image_prompt": "cinematic scene in English — Earth or Earth surface under the altered condition. NASA Hubble astrophotography style. Specific altered environment: different sky color, extreme terrain, altered oceans, planetary ring visible. Properly exposed, dramatic lighting, rich colors. 9:16 vertical. NOT generic — must show THIS specific effect.",
       "image_negative": "blurry, overexposed, blown out, text, watermark, logo, generic stock photo, silhouette, bad anatomy",
       "video_prompt": "slow cinematic motion in English — one specific element moves gently (atmosphere swirling, ocean surface, clouds drifting). Camera: slow zoom-out / gentle push-in. consistent stable lighting, no light variation."
@@ -336,7 +353,7 @@ Devuelve exactamente este JSON con {num_scenes} escenas completas:
   "tags": ["tag1especifico", "tag2", "tag3", "tag4", "tag5general"]
 }}
 
-LÍMITE TOTAL: máx {num_scenes * 20} palabras de narración en total.
+LÍMITE TOTAL: entre {num_scenes * 17} y {num_scenes * 21} palabras de narración en total para que el vídeo dure 33-38 segundos.
 NO emojis ni símbolos (@, #, *, &, %) en ningún campo.
 tags: 3-5 palabras clave en minúsculas, sin espacios, sin # — específicas de la hipótesis y sus consecuencias.
 Ortografía española perfecta: tildes y ñ siempre (á, é, í, ó, ú, ñ)."""

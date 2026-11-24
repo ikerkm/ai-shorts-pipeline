@@ -8,6 +8,15 @@ misaki==0.9.4
 espeakng-loader==0.2.4
 huggingface_hub==1.15.0
 
+# Deduplicación semántica de temas (modules/topic_store.py)
+chromadb==1.5.9
+sentence-transformers==5.5.1
+
+# Subida a YouTube y métricas (YouTube Data API)
+google-api-python-client==2.196.0
+google-auth==2.53.0
+google-auth-oauthlib==1.4.0
+
 # Ya incluidas en ComfyUI pero listadas para referencia
 aiohttp==3.13.5
 numpy==2.3.5
