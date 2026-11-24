@@ -12,6 +12,12 @@ import requests as _req
 from pathlib import Path
 from config import TTS_VOICE, TTS_RATE, FFPROBE, FFMPEG
 
+try:
+    from num2words import num2words as _num2words
+    _HAS_NUM2WORDS = True
+except ImportError:
+    _HAS_NUM2WORDS = False
+
 
 # ── Kokoro ────────────────────────────────────────────────────────────────────
 
@@ -151,6 +157,94 @@ _RE_THOUSANDS = re.compile(r'\b(\d{1,3}(?:\.\d{3})+)\b')
 def _strip_thousand_dots(text: str) -> str:
     return _RE_THOUSANDS.sub(lambda m: m.group(0).replace('.', ''), text)
 
+# Normalización de números y unidades para TTS en español
+_NORM_RULES = [
+    # Signo negativo delante de un número → "menos N" (el TTS lo enmudecía,
+    # invirtiendo el sentido: "-63 grados" sonaba "63 grados"). Solo si NO va
+    # precedido de alfanumérico, para no tocar rangos (5-10) ni palabras compuestas.
+    (re.compile(r'(?<![A-Za-z0-9])[-−–]\s*(?=\d)'),  'menos '),
+    # Coma decimal entre dígitos → "X coma Y"
+    (re.compile(r'(\d),(\d)'),                      r'\1 coma \2'),
+    # Velocidad compuesta (antes que km/m simples)
+    (re.compile(r'\bkm/h\b', re.I),                 'kilómetros por hora'),
+    (re.compile(r'\bkm/s\b', re.I),                 'kilómetros por segundo'),
+    (re.compile(r'\bm/s\b',  re.I),                 'metros por segundo'),
+    (re.compile(r'\bcm/s\b', re.I),                 'centímetros por segundo'),
+    # Área y volumen (antes que km/m simples)
+    (re.compile(r'\bkm²'),                           'kilómetros cuadrados'),
+    (re.compile(r'\bkm2\b'),                         'kilómetros cuadrados'),
+    (re.compile(r'\bkm³'),                           'kilómetros cúbicos'),
+    (re.compile(r'\bm²'),                            'metros cuadrados'),
+    (re.compile(r'\bm2\b'),                          'metros cuadrados'),
+    (re.compile(r'\bm³'),                            'metros cúbicos'),
+    (re.compile(r'\bcm²'),                           'centímetros cuadrados'),
+    (re.compile(r'\bcm³'),                           'centímetros cúbicos'),
+    # Distancia
+    (re.compile(r'\bkm\b',  re.I),                  'kilómetros'),
+    (re.compile(r'\bcm\b',  re.I),                  'centímetros'),
+    (re.compile(r'\bmm\b',  re.I),                  'milímetros'),
+    (re.compile(r'\bnm\b'),                          'nanómetros'),
+    (re.compile(r'\bAU\b'),                          'unidades astronómicas'),
+    (re.compile(r'\bua\b'),                          'unidades astronómicas'),
+    (re.compile(r'\bly\b'),                          'años luz'),
+    (re.compile(r'\baños-luz\b'),                    'años luz'),
+    # Masa
+    (re.compile(r'\bkg\b',  re.I),                  'kilogramos'),
+    (re.compile(r'\bmg\b',  re.I),                  'miligramos'),
+    # Tiempo
+    (re.compile(r'\bms\b'),                          'milisegundos'),
+    # Temperatura
+    (re.compile(r'°C\b'),                            ' grados Celsius'),
+    (re.compile(r'°F\b'),                            ' grados Fahrenheit'),
+    (re.compile(r'°'),                               ' grados'),
+    # Frecuencia
+    (re.compile(r'\bGHz\b'),                         'gigahercios'),
+    (re.compile(r'\bMHz\b'),                         'megahercios'),
+    (re.compile(r'\bkHz\b'),                         'kilohercios'),
+    (re.compile(r'\bHz\b'),                          'hercios'),
+    # Potencia / energía
+    (re.compile(r'\bGW\b'),                          'gigavatios'),
+    (re.compile(r'\bMW\b'),                          'megavatios'),
+    (re.compile(r'\bkW\b'),                          'kilovatios'),
+    (re.compile(r'\bkWh\b'),                         'kilovatios hora'),
+    # Superíndices y símbolos matemáticos
+    (re.compile(r'²'),                               ' al cuadrado'),
+    (re.compile(r'³'),                               ' al cubo'),
+    (re.compile(r'×'),                               ' por '),
+]
+
+def _spell_integers(text: str) -> str:
+    """Convierte enteros sueltos a palabras en español (6500 -> seis mil quinientos).
+
+    Evita que el TTS (sobre todo ElevenLabs) lea mal cifras de 4+ dígitos.
+    Se aplica DESPUÉS de _strip_thousand_dots (sin puntos de millar) y de la regla
+    de decimales (que ya separó 'X coma Y'), así que cada \\d+ es un entero limpio.
+    """
+    if not _HAS_NUM2WORDS:
+        return text
+
+    def repl(m: re.Match) -> str:
+        s = m.group(0)
+        try:
+            n = int(s)
+        except ValueError:
+            return s
+        if n > 10 ** 15:  # cifras astronómicas: dejar en dígitos (num2words se dispara)
+            return s
+        try:
+            return _num2words(n, lang='es')
+        except Exception:
+            return s
+
+    return re.sub(r'\d+', repl, text)
+
+
+def _normalize_for_tts(text: str) -> str:
+    for pattern, replacement in _NORM_RULES:
+        text = pattern.sub(replacement, text)
+    text = _spell_integers(text)
+    return re.sub(r' {2,}', ' ', text).strip()
+
 def generate_audio(text: str, output_path: Path,
                    voice: str = None, rate: str = None,
                    elevenlabs_voice_id: str = None,
@@ -159,6 +253,8 @@ def generate_audio(text: str, output_path: Path,
     text = text.translate(_TM_CHARS)
     # Separadores de miles españoles (4.000 → 4000) para evitar "cuatro punto cero cero cero"
     text = _strip_thousand_dots(text)
+    # Números decimales y unidades (km/h → kilómetros por hora, 3,4 → 3 coma 4, etc.)
+    text = _normalize_for_tts(text)
     # 1. ElevenLabs (máxima calidad, requiere API key)
     el_key = os.getenv('ELEVENLABS_API_KEY', '').strip()
     if el_key and elevenlabs_voice_id:
