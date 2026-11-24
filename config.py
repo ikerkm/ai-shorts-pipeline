@@ -13,8 +13,10 @@ OUTPUT_DIR = BASE_DIR / 'output'
 TEMP_DIR = BASE_DIR / 'temp'
 ACCOUNTS_DIR = BASE_DIR / 'accounts'
 MUSIC_DIR = BASE_DIR / 'music'
+ASSETS_DIR = BASE_DIR / 'assets'
 OUTPUT_DIR.mkdir(exist_ok=True)
 TEMP_DIR.mkdir(exist_ok=True)
+ASSETS_DIR.mkdir(exist_ok=True)
 
 
 def load_account(name: str) -> dict:
@@ -32,6 +34,10 @@ FFPROBE = r"C:\Users\ikerk\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_M
 VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920
 FPS = 32  # RIFE ×2 desde los 16fps de Wan
+
+# Duración del HOOK card (gancho visual del frame 1, ms). Calibrar con la curva
+# de retención: subir si la gente aún se va tras desaparecer; bajar si tapa el vídeo.
+HOOK_OVERLAY_DUR_MS = 2200
 
 TTS_VOICE = 'es-ES-AlvaroNeural'
 TTS_RATE = '+0%'
