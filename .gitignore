@@ -44,3 +44,14 @@ $null
 # Scripts de prueba locales
 test_*.py
 scripts/
+
+# Datos locales que se generan solos (no van al repo)
+models/
+chroma/
+assets/
+
+# Notas y papelera locales
+removed/
+CLAUDE.md
+_regen_*.py
+]
