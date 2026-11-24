@@ -17,6 +17,7 @@ Uso:
 import json
 import sys
 import argparse
+import traceback
 from pathlib import Path
 from datetime import datetime
 
@@ -25,6 +26,16 @@ from config import ACCOUNTS_DIR, BASE_DIR, load_account
 from modules.youtube_uploader import upload_video, _get_credentials, get_channel_info
 
 LOGS_DIR = BASE_DIR / "logs"
+UPLOAD_LOG = LOGS_DIR / "upload_errors.log"
+
+
+def _log_error(account_name: str, topic: str, error: Exception):
+    LOGS_DIR.mkdir(exist_ok=True)
+    ts = datetime.now().isoformat(timespec="seconds")
+    with open(UPLOAD_LOG, "a", encoding="utf-8") as f:
+        f.write(f"\n[{ts}] [{account_name}] {topic}\n")
+        f.write(f"  ERROR: {error}\n")
+        f.write(f"  {traceback.format_exc().splitlines()[-1]}\n")
 
 
 def _log_path(account_name: str) -> Path:
@@ -117,6 +128,7 @@ def upload_pending(account_name: str, limit: int = None):
             _save_log(account_name, data)
         except Exception as e:
             print(f"  [ERROR] {e}")
+            _log_error(account_name, topic, e)
 
 
 def upload_single(account_name: str, file_path: Path, topic: str):

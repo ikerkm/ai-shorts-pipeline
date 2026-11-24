@@ -60,8 +60,15 @@ echo   - datos_curiosos\
 echo   - anuncios_absurdos\
 echo ================================================
 echo.
-echo ================================================
-echo   Apagando el PC en 60 segundos...
-echo   Ejecuta "shutdown /a" para cancelar.
-echo ================================================
-shutdown /s /t 60
+if defined NO_SHUTDOWN (
+    echo ================================================
+    echo   Invocado desde run_all.bat — NO se apaga.
+    echo   El apagado lo gestionara run_all al terminar.
+    echo ================================================
+) else (
+    echo ================================================
+    echo   Apagando el PC en 60 segundos...
+    echo   Ejecuta "shutdown /a" para cancelar.
+    echo ================================================
+    shutdown /s /t 60
+)

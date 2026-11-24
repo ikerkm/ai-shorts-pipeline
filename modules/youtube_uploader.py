@@ -72,8 +72,14 @@ def upload_video(
     tags: list = None,
     category_id: str = "28",
     privacy: str = "public",
+    synthetic_media: bool = True,
 ) -> str:
-    """Sube un vídeo a YouTube Shorts. Devuelve la URL del vídeo."""
+    """Sube un vídeo a YouTube Shorts. Devuelve la URL del vídeo.
+
+    synthetic_media=True declara el vídeo como contenido alterado/sintético
+    (IA) ante YouTube (status.containsSyntheticMedia, soportado desde 2024-10-30).
+    Equivale a marcar a mano "contenido alterado o sintético" en Studio.
+    """
     creds = _get_credentials(account_name)
     youtube = build("youtube", "v3", credentials=creds)
 
@@ -87,6 +93,7 @@ def upload_video(
         "status": {
             "privacyStatus": privacy,
             "selfDeclaredMadeForKids": False,
+            "containsSyntheticMedia": synthetic_media,
         },
     }
 
@@ -102,6 +109,8 @@ def upload_video(
                 pct = int(status.progress() * 100)
                 print(f"  Subiendo... {pct}%", end="\r", flush=True)
         except HttpError as e:
+            if e.resp.status == 429:
+                raise  # quota agotado — no reintentar, propagar inmediatamente
             if e.resp.status in (500, 502, 503, 504) and retries < 5:
                 retries += 1
                 time.sleep(2 ** retries)
