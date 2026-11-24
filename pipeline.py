@@ -24,17 +24,24 @@ if sys.stderr.encoding != 'utf-8':
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 sys.path.insert(0, str(Path(__file__).parent))
-from config import BASE_DIR, TEMP_DIR, OUTPUT_DIR, FFMPEG, VIDEO_WIDTH, VIDEO_HEIGHT, load_account
+from config import BASE_DIR, TEMP_DIR, OUTPUT_DIR, ASSETS_DIR, FFMPEG, VIDEO_WIDTH, VIDEO_HEIGHT, HOOK_OVERLAY_DUR_MS, load_account
 from modules.script_generator import generate_script, generate_ad_script, generate_what_if_script
 from modules.product_generator import generate_product
 from modules.image_generator import generate_image
 from modules.image_generator_ads import generate_product_hero, generate_scene_from_hero
+from modules.stock_fetcher import fetch_stock_image
 from modules.tts_generator import generate_audio, get_audio_duration, release_kokoro
 from modules.subtitle_generator import generate_ass
 from modules.video_assembler import (
     create_scene_clip, concat_videos, concat_audios, merge_av,
-    mix_audio_with_music, burn_subtitles
+    mix_audio_with_music, burn_subtitles, make_cta_card, add_subscribe_cta,
+    append_outro_cta
 )
+
+# Locución de cierre por defecto (cada cuenta puede sobreescribir con "subscribe_cta_line")
+DEFAULT_CTA_LINE = "Suscríbete para no perderte el próximo."
+# Segundos finales sobre los que aparece la tarjeta visual de 'Suscríbete'
+CTA_OVERLAY_DUR = 4.0
 from modules.video_generator import generate_wan_video
 
 ZOOM_CYCLE = [True, False, True, False, True, False, True, False]
@@ -92,8 +99,11 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     lora_strength        = float(p.get("lora_strength", 0.8))
     color_preset         = p.get("color_preset", "none")
     elevenlabs_voice_id  = p.get("elevenlabs_voice_id", "") or None
+    use_nasa_stock       = bool(p.get("use_nasa_stock", False))
     kokoro_voice         = p.get("kokoro_voice", "") or None
     kokoro_speed         = float(p.get("kokoro_speed", 0.92))
+    subscribe_cta        = bool(p.get("subscribe_cta", False))
+    channel_handle       = p.get("youtube_channel_handle", "") or ""
 
     out_subdir = p.get("output_subdir", "")
     output_dir = OUTPUT_DIR / out_subdir if out_subdir else OUTPUT_DIR
@@ -166,6 +176,12 @@ def run(topic: str, style: str = None, num_scenes: int = None,
         # anuncios: guión cargado de pending/ en el paso 0
         script = cached_script
         print(f"\n[1/5] Guion cargado del cache")
+    elif script_file:
+        # --script-file para cuentas no-anuncio: carga directa sin consumir
+        _data = json.loads(Path(script_file).read_text(encoding="utf-8"))
+        script = _data["script"]
+        actual_topic = _data.get("topic", topic)
+        print(f"\n[1/5] Guion cargado (sin consumir): {Path(script_file).name}")
     elif product:
         print("\n[1/5] Generando guion con Claude Opus...")
         script = generate_ad_script(product, effective_scenes)
@@ -222,6 +238,7 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     # ── 2a. Imágenes (ComfyUI/Flux — GPU exclusivo, sin Kokoro activo) ────────
     print("\n[2/5] Generando imagenes...")
     img_paths = []
+    stock_flags = []  # True si la escena uso una foto real de NASA (no Flux)
 
     # Anuncios: generar hero image primero, luego img2img por escena
     hero_path = None
@@ -239,6 +256,7 @@ def run(topic: str, style: str = None, num_scenes: int = None,
         scene_type = scene.get("scene_type", "product")
         print(f"\n  Escena {i+1}/{len(script['scenes'])} [{scene_type}]: {scene['narration'][:45]}...")
         img_path = job_dir / f"scene_{i:02d}.png"
+        used_stock = False
 
         if test_mode:
             _placeholder_image(img_path)
@@ -253,17 +271,23 @@ def run(topic: str, style: str = None, num_scenes: int = None,
                 output_path=img_path,
             )
         else:
-            # Problema y testimonio: text2img libre (persona o entorno sin restricción del hero)
-            generate_image(
-                prompt=scene["image_prompt"],
-                negative=scene.get("image_negative", "blurry, low quality, text, watermark"),
-                seed=random.randint(1, 2**31),
-                output_path=img_path,
-                style_prefix=visual_style_prefix,
-                lora_name=lora_name,
-                lora_strength=lora_strength,
-            )
+            # 1) Intento foto real de NASA (dominio publico) si la cuenta lo activa
+            if use_nasa_stock and scene.get("stock_query"):
+                if fetch_stock_image(scene["stock_query"], scene["narration"], img_path):
+                    used_stock = True
+            # 2) Fallback a Flux text2img si no hubo foto real adecuada
+            if not used_stock:
+                generate_image(
+                    prompt=scene["image_prompt"],
+                    negative=scene.get("image_negative", "blurry, low quality, text, watermark"),
+                    seed=random.randint(1, 2**31),
+                    output_path=img_path,
+                    style_prefix=visual_style_prefix,
+                    lora_name=lora_name,
+                    lora_strength=lora_strength,
+                )
         img_paths.append(img_path)
+        stock_flags.append(used_stock)
 
     # ── 2b. Audio (TTS — después de liberar GPU de Flux) ──────────────────────
     print("\n  Generando audio TTS...")
@@ -302,15 +326,19 @@ def run(topic: str, style: str = None, num_scenes: int = None,
                 sd["img_paths_split"] = [sd["img_path"]]
                 for j in range(1, n_splits):
                     img_var = job_dir / f"scene_{i:02d}_{j}.png"
-                    generate_image(
-                        prompt=_vary_image_prompt(sd["image_prompt"]),
-                        negative=sd["image_negative"],
-                        seed=random.randint(1, 2**31),
-                        output_path=img_var,
-                        style_prefix=visual_style_prefix,
-                        lora_name=lora_name,
-                        lora_strength=lora_strength,
-                    )
+                    if stock_flags[i]:
+                        # Foto real de NASA: no hay "otro angulo", reutilizar la misma imagen
+                        shutil.copy(sd["img_path"], img_var)
+                    else:
+                        generate_image(
+                            prompt=_vary_image_prompt(sd["image_prompt"]),
+                            negative=sd["image_negative"],
+                            seed=random.randint(1, 2**31),
+                            output_path=img_var,
+                            style_prefix=visual_style_prefix,
+                            lora_name=lora_name,
+                            lora_strength=lora_strength,
+                        )
                     sd["img_paths_split"].append(img_var)
 
     # Liberar Kokoro de VRAM antes de que arranque Wan
@@ -383,6 +411,7 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     concat_videos(clips, raw_video)
     concat_audios([sd["audio_path"] for sd in scenes_data], full_audio)
 
+    music_file = None
     if music_files and not test_mode:
         music_file = random.choice(music_files)
         print(f"  Mezclando musica: {music_file}")
@@ -395,10 +424,28 @@ def run(topic: str, style: str = None, num_scenes: int = None,
     # ── 5. Subtitles + titulo ──────────────────────────────────
     print("\n[5/5] Quemando subtitulos estilo TikTok...")
     ass_path = job_dir / "subtitles.ass"
-    generate_ass(subtitle_scenes, ass_path, title=script["title"])
+    generate_ass(subtitle_scenes, ass_path, title=script["title"],
+                 hook=script.get("hook_overlay", ""), hook_dur_ms=HOOK_OVERLAY_DUR_MS)
+
+    # MASTER LIMPIO (sin CTA): es el artefacto canónico y la fuente del compilatorio semanal
+    master_tmp = job_dir / "master.mp4"
+    burn_subtitles(video_av, ass_path, master_tmp, color_preset=color_preset)
 
     final = output_dir / f"{job_id}.mp4"
-    burn_subtitles(video_av, ass_path, final, color_preset=color_preset)
+    if subscribe_cta and not test_mode and not product:
+        # Guardar master limpio para el compilatorio + producir el Short con overlay de CTA
+        masters_dir = output_dir / "masters"
+        masters_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy(master_tmp, masters_dir / f"{job_id}.mp4")
+        cta_png = make_cta_card(ASSETS_DIR / f"cta_{account_key or 'default'}.png", channel_handle)
+        # CTA SOLO VISUAL: la tarjeta 'Suscríbete' se superpone sobre los últimos
+        # segundos del vídeo REAL — sin alargar, sin congelar, sin oscurecer y SIN
+        # locución. Así el Short termina en la pregunta abierta del narrador y
+        # loopea limpio (la cola hablada rompía el bucle y hundía el alcance).
+        add_subscribe_cta(master_tmp, final, cta_png, cta_dur=CTA_OVERLAY_DUR)
+        print(f"  Master limpio en masters/  |  Short con CTA visual ({CTA_OVERLAY_DUR}s)")
+    else:
+        shutil.move(str(master_tmp), str(final))
 
     shutil.rmtree(job_dir)
 
